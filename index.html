@@ -104,7 +104,7 @@ dialog form{display:flex;flex-direction:column;gap:12px}
   <!-- 2. login -->
   <section class="panel" id="vLogin" hidden>
     <h2>Intră în cont</h2>
-    <div class="field"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username"></div>
+    <div class="field"><label for="lEmail">Utilizator</label><input id="lEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
     <div class="field"><label for="lPass">Parola</label><input id="lPass" type="password" autocomplete="current-password"></div>
     <p class="err" id="lErr" hidden></p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btnLogin" type="button">Intră</button><button class="btn" id="btnEditCfg" type="button">Schimbă serverul</button></div>
@@ -168,9 +168,9 @@ async function login(){
   try{
     if(DEMO){sess={at:'demo',email:$('lEmail').value||'admin@exemplu.md'};}
     else{
-      const r=await fetch(cfg.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:cfg.key,'Content-Type':'application/json'},body:JSON.stringify({email:$('lEmail').value.trim(),password:$('lPass').value})});
+      const r=await fetch(cfg.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:cfg.key,'Content-Type':'application/json'},body:JSON.stringify({email:(u=>u.includes('@')?u:u+'@trucklog.app')($('lEmail').value.trim().toLowerCase()),password:$('lPass').value})});
       const j=await r.json().catch(()=>({}));
-      if(!r.ok)throw new Error(j.error_description||j.msg||'Email sau parolă greșită.');
+      if(!r.ok)throw new Error(j.error_description||j.msg||'Utilizator sau parolă greșită.');
       sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email:j.user&&j.user.email};
     }
     ls.set('tla-sess',sess);$('lPass').value='';show();
@@ -185,7 +185,7 @@ async function refresh(){
 function show(){
   const hasCfg=DEMO||(cfg&&cfg.url&&cfg.key);
   $('vSetup').hidden=!!hasCfg;$('vLogin').hidden=!hasCfg||!!sess;$('vMain').hidden=!sess;
-  $('btnLogout').hidden=!sess;$('btnReload').hidden=!sess;$('who').textContent=sess?('Conectat ca '+(sess.email||'admin')):'';
+  $('btnLogout').hidden=!sess;$('btnReload').hidden=!sess;$('who').textContent=sess?('Conectat ca '+String(sess.email||'admin').replace('@trucklog.app','')):'';
   if(!hasCfg&&cfg){$('sUrl').value=cfg.url||'';$('sKey').value=cfg.key||''}
   if(sess)load();
 }
