@@ -164,7 +164,7 @@ dialog form{display:flex;flex-direction:column;gap:12px}
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="mCancel" type="button">Anulează</button><button class="btn primary" type="submit">Salvează</button></div>
     </div>
     <div id="mDone" hidden style="display:flex;flex-direction:column;gap:12px">
-      <p class="note">Trimite-i șefului datele de mai jos. Parola nu mai poate fi văzută după ce închizi fereastra, dar îi poți pune oricând una nouă.</p>
+      <p class="note">Trimite-i șefului datele de mai jos. Parola rămâne vizibilă doar pentru tine, în această pagină, la „Arată parola”.</p>
       <div class="cred" id="mCred"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="mCopy" type="button">Copiază</button><button class="btn primary" id="mClose" type="button">Gata</button></div>
     </div>
@@ -184,7 +184,7 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth(
 
 /* ---------- connection ---------- */
 const DEF_CFG={url:'https://ujsjnhlhmdrsfrivvbzt.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqc2puaGxobWRyc2ZyaXZ2Ynp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NzM3ODgsImV4cCI6MjExMDA0OTc4OH0.jpPcxxfHd-c41nnSkC77PvF9aM6dIenmHz3ccgCJTI0'};
-let cfg=ls.get('tla-cfg',null)||DEF_CFG, sess=ls.get('tla-sess',null), data=[], mgrs=[], usage=null;
+let cfg=ls.get('tla-cfg',null)||DEF_CFG, sess=ls.get('tla-sess',null), data=[], mgrs=[], usage=null, secrets={};
 const PORTAL_URL='https://alex07cotovici-ctrl.github.io/trucklog-admin/portal/';
 const LIMIT_MB=500;
 const mb=b=>b>=1048576?(Math.round(b/1048576*10)/10+' MB').replace('.',','):(Math.max(1,Math.round(b/1024))+' KB');
@@ -235,6 +235,7 @@ async function load(){
     if(adm!==true){sess=null;ls.del('tla-sess');show();$('lErr').textContent='Contul acesta nu este de administrator.';$('lErr').hidden=false;return}
     data=await api('/rest/v1/companies?select=*,devices(*)&order=created_at.asc')||[];
     try{mgrs=await api('/rest/v1/managers?select=user_id,company_id,username,created_at&order=username.asc')||[]}catch(e){mgrs=[]}
+    try{const sc=await api('/rest/v1/manager_secrets?select=user_id,password')||[];secrets={};sc.forEach(x=>{secrets[x.user_id]=x.password})}catch(e){secrets={}}
     try{usage=await api('/rest/v1/rpc/tl_admin_usage',{method:'POST',body:'{}'})}catch(e){usage=null}
     render()}
   catch(e){$('list').innerHTML='';const p=document.createElement('p');p.className='err';p.textContent=e.message;$('list').appendChild(p)}
@@ -280,9 +281,13 @@ function render(){
       const mine=mgrs.filter(m=>m.company_id===c.id);
       if(!mine.length){const p=document.createElement('span');p.className='sub';p.textContent='Niciun cont încă. Șeful acestei firme nu poate intra pe site.';mg.appendChild(p)}
       mine.forEach(m=>{const r=document.createElement('div');r.className='mgr';const b=document.createElement('b');b.textContent=m.username;const sp=document.createElement('span');sp.style.flex='1';
+        const pw=secrets[m.user_id];const pv=document.createElement('span');pv.className='sub';pv.textContent=pw?'parola: ••••••••':'parolă necunoscută – pune una nouă';
+        const b0=document.createElement('button');b0.type='button';b0.className='btn small';b0.textContent='Arată parola';b0.hidden=!pw;let shown=false;
+        b0.onclick=()=>{shown=!shown;pv.textContent=shown?'parola: '+pw:'parola: ••••••••';pv.style.fontFamily=shown?'var(--mono)':'';pv.style.userSelect=shown?'all':'';b0.textContent=shown?'Ascunde':'Arată parola'};
+        const bc=document.createElement('button');bc.type='button';bc.className='btn small';bc.textContent='Copiază datele';bc.hidden=!pw;bc.onclick=()=>copy(`Site: ${PORTAL_URL}\nUtilizator: ${m.username}\nParolă: ${pw}`);
         const b1=document.createElement('button');b1.type='button';b1.className='btn small';b1.textContent='Parolă nouă';b1.onclick=()=>openMgr(c,m);
         const b2=document.createElement('button');b2.type='button';b2.className='btn small';b2.textContent='Șterge';b2.onclick=()=>delMgr(m,b2);
-        r.append(b,sp,b1,b2);mg.appendChild(r)});
+        r.append(b,pv,sp,b0,bc,b1,b2);mg.appendChild(r)});
       box.appendChild(mg);
     }
     const devs=(c.devices||[]).filter(d=>!d.released).sort((a,b)=>Date.parse(b.activated_at)-Date.parse(a.activated_at));
@@ -401,6 +406,7 @@ function demoApi(path,opt){
   }
   if(path.includes('/rpc/tl_is_admin'))return Promise.resolve(true);
   if(path.includes('/rpc/tl_admin_usage'))return Promise.resolve({db_bytes:31*1048576,drivers:8,days:412,companies:{m:1.9*1048576,p:16.4*1048576}});
+  if(path.startsWith('/rest/v1/manager_secrets'))return Promise.resolve([{user_id:'u1',password:'hT7mKq2xWp9d'},{user_id:'u2',password:'Rz4nBv8cLy3s'}]);
   if(path.startsWith('/rest/v1/managers'))return Promise.resolve(JSON.parse(JSON.stringify(demoMgrs)));
   if(path.includes('/rpc/tl_admin_set_manager')){const b=JSON.parse(opt.body);const ex=demoMgrs.find(x=>x.username===b.p_username);if(!ex)demoMgrs.push({user_id:'u'+Date.now(),company_id:b.p_company,username:b.p_username});return Promise.resolve({ok:true})}
   if(path.includes('/rpc/tl_admin_del_manager')){const b=JSON.parse(opt.body);demoMgrs=demoMgrs.filter(x=>x.user_id!==b.p_user);return Promise.resolve({ok:true})}
