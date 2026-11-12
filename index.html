@@ -65,6 +65,15 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 .seatbar.full i{background:var(--danger)}
 .coacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .devs{border-top:1px solid var(--line);padding:10px 16px;background:var(--bg)}
+.mgrs{border-top:1px solid var(--line);padding:10px 16px;display:flex;flex-direction:column;gap:6px}
+.mgrs h3{font-size:14px;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mgr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.mgr b{font-family:var(--mono);font-weight:500}
+.usage{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+.ubar{grid-column:1/-1;height:10px;background:var(--bg);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.ubar i{display:block;height:100%;background:var(--ok)}
+.ubar.near i{background:var(--accent)}.ubar.over i{background:var(--danger)}
+.cred{font-family:var(--mono);font-size:14px;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all}
 .dev{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .dev:last-child{border-bottom:0}
 .dev .dm{min-width:0;overflow-wrap:anywhere}
@@ -117,8 +126,13 @@ dialog form{display:flex;flex-direction:column;gap:12px}
       <div class="kpi"><span>Telefoane active</span><b id="kDevs">0</b></div>
       <div class="kpi"><span>Probe în curs</span><b id="kTrials">0</b></div>
     </section>
+    <section class="panel">
+      <div class="usage"><h2>Spațiu folosit pe server</h2><b id="uTxt" style="font-family:var(--mono);font-weight:500">–</b><div class="ubar" id="uBar"><i style="width:0"></i></div></div>
+      <p class="note" id="uNote">Planul gratuit Supabase are 500 MB. Bara devine galbenă la 70% și roșie la 90%.</p>
+    </section>
     <div class="top"><h2>Coduri</h2><button class="btn primary" id="btnNew" type="button">Firmă nouă</button></div>
     <div id="list" style="display:flex;flex-direction:column;gap:12px"></div>
+    <p class="note">Site-ul pentru șefi: <a id="portalLink" href="#" target="_blank" rel="noopener"></a>. Fiecare șef intră cu utilizatorul și parola pe care i le faci la firma lui și vede doar șoferii acelei firme.</p>
     <p class="note">Un loc se ocupă când un telefon activează codul. Dacă un șofer pleacă sau își schimbă telefonul, apasă „Eliberează” la telefonul lui ca locul să poată fi folosit din nou.</p>
   </div>
 </div>
@@ -140,6 +154,22 @@ dialog form{display:flex;flex-direction:column;gap:12px}
     <p class="err" id="delNote" hidden style="font-weight:400">Se șterg și telefoanele ei, care se vor bloca la următoarea verificare. Apasă din nou „Șterge firma” ca să confirmi.</p>
   </form>
 </dialog>
+<dialog id="mdlg">
+  <form id="mfrm">
+    <h2 id="mTitle">Acces șef</h2>
+    <div id="mEdit" style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label for="mUser">Utilizator (litere mici, cifre, fără spații)</label><input id="mUser" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="field"><label for="mPass">Parolă (cel puțin 8 caractere)</label><div class="coderow"><input id="mPass" type="text" autocomplete="off" spellcheck="false" style="text-transform:none"><button class="btn" id="mGen" type="button">Generează</button></div></div>
+      <p class="err" id="mErr" hidden></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="mCancel" type="button">Anulează</button><button class="btn primary" type="submit">Salvează</button></div>
+    </div>
+    <div id="mDone" hidden style="display:flex;flex-direction:column;gap:12px">
+      <p class="note">Trimite-i șefului datele de mai jos. Parola nu mai poate fi văzută după ce închizi fereastra, dar îi poți pune oricând una nouă.</p>
+      <div class="cred" id="mCred"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="mCopy" type="button">Copiază</button><button class="btn primary" id="mClose" type="button">Gata</button></div>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -154,7 +184,10 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth(
 
 /* ---------- connection ---------- */
 const DEF_CFG={url:'https://ujsjnhlhmdrsfrivvbzt.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqc2puaGxobWRyc2ZyaXZ2Ynp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NzM3ODgsImV4cCI6MjExMDA0OTc4OH0.jpPcxxfHd-c41nnSkC77PvF9aM6dIenmHz3ccgCJTI0'};
-let cfg=ls.get('tla-cfg',null)||DEF_CFG, sess=ls.get('tla-sess',null), data=[];
+let cfg=ls.get('tla-cfg',null)||DEF_CFG, sess=ls.get('tla-sess',null), data=[], mgrs=[], usage=null;
+const PORTAL_URL='https://alex07cotovici-ctrl.github.io/trucklog-admin/portal/';
+const LIMIT_MB=500;
+const mb=b=>b>=1048576?(Math.round(b/1048576*10)/10+' MB').replace('.',','):(Math.max(1,Math.round(b/1024))+' KB');
 async function api(path,opt={}){
   if(DEMO)return demoApi(path,opt);
   if(sess&&sess.exp&&Date.now()>sess.exp-60e3)await refresh();
@@ -197,12 +230,21 @@ $('btnReload').onclick=()=>load();
 
 /* ---------- list ---------- */
 async function load(){
-  try{data=await api('/rest/v1/companies?select=*,devices(*)&order=created_at.asc')||[];render()}
+  try{
+    const adm=await api('/rest/v1/rpc/tl_is_admin',{method:'POST',body:'{}'});
+    if(adm!==true){sess=null;ls.del('tla-sess');show();$('lErr').textContent='Contul acesta nu este de administrator.';$('lErr').hidden=false;return}
+    data=await api('/rest/v1/companies?select=*,devices(*)&order=created_at.asc')||[];
+    try{mgrs=await api('/rest/v1/managers?select=user_id,company_id,username,created_at&order=username.asc')||[]}catch(e){mgrs=[]}
+    try{usage=await api('/rest/v1/rpc/tl_admin_usage',{method:'POST',body:'{}'})}catch(e){usage=null}
+    render()}
   catch(e){$('list').innerHTML='';const p=document.createElement('p');p.className='err';p.textContent=e.message;$('list').appendChild(p)}
 }
 const activeDevs=c=>(c.devices||[]).filter(d=>!d.released&&!(d.expires_at&&Date.parse(d.expires_at)<Date.now()));
 function render(){
   const list=$('list');list.innerHTML='';
+  $('portalLink').href=PORTAL_URL;$('portalLink').textContent=PORTAL_URL.replace('https://','');
+  if(usage){const pct=usage.db_bytes/(LIMIT_MB*1048576)*100;$('uTxt').textContent=`${mb(usage.db_bytes)} din ${LIMIT_MB} MB (${pct<1?'sub 1':Math.round(pct)}%)`;const ub=$('uBar');ub.className='ubar'+(pct>=90?' over':(pct>=70?' near':''));ub.firstChild.style.width=Math.min(100,Math.max(1,pct))+'%';
+    $('uNote').textContent=`Planul gratuit Supabase are ${LIMIT_MB} MB. Din spațiul folosit, cam 12 MB sunt ai serverului gol. Șoferi care trimit date: ${usage.drivers}. Bara devine galbenă la 70% și roșie la 90%.`}
   $('kCos').textContent=data.filter(c=>c.kind==='company'&&c.active&&!(c.valid_until&&c.valid_until<today())).length;
   $('kDevs').textContent=data.filter(c=>c.kind==='company').reduce((s,c)=>s+activeDevs(c).length,0);
   $('kTrials').textContent=data.filter(c=>c.kind==='trial').reduce((s,c)=>s+activeDevs(c).length,0);
@@ -230,7 +272,19 @@ function render(){
       meta.appendChild(sp);
     }
     meta.appendChild(span('Valabil până la: ',c.valid_until?fmtD(c.valid_until):'fără termen'));
+    if(c.kind==='company'&&usage&&usage.companies&&usage.companies[c.id])meta.appendChild(span('Date trimise: ',mb(usage.companies[c.id])));
     head.append(nm,acts,meta);box.appendChild(head);
+    if(c.kind==='company'){
+      const mg=document.createElement('div');mg.className='mgrs';const h=document.createElement('h3');h.append('Acces șef la site-ul firmei');
+      const ab=document.createElement('button');ab.type='button';ab.className='btn small';ab.textContent='Adaugă acces';ab.onclick=()=>openMgr(c,null);h.appendChild(ab);mg.appendChild(h);
+      const mine=mgrs.filter(m=>m.company_id===c.id);
+      if(!mine.length){const p=document.createElement('span');p.className='sub';p.textContent='Niciun cont încă. Șeful acestei firme nu poate intra pe site.';mg.appendChild(p)}
+      mine.forEach(m=>{const r=document.createElement('div');r.className='mgr';const b=document.createElement('b');b.textContent=m.username;const sp=document.createElement('span');sp.style.flex='1';
+        const b1=document.createElement('button');b1.type='button';b1.className='btn small';b1.textContent='Parolă nouă';b1.onclick=()=>openMgr(c,m);
+        const b2=document.createElement('button');b2.type='button';b2.className='btn small';b2.textContent='Șterge';b2.onclick=()=>delMgr(m,b2);
+        r.append(b,sp,b1,b2);mg.appendChild(r)});
+      box.appendChild(mg);
+    }
     const devs=(c.devices||[]).filter(d=>!d.released).sort((a,b)=>Date.parse(b.activated_at)-Date.parse(a.activated_at));
     if(devs.length){
       const dv=document.createElement('div');dv.className='devs';
@@ -251,6 +305,32 @@ async function copy(x){try{await navigator.clipboard.writeText(x);toast('Cod cop
 async function release(c,d,b){
   if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Sigur? Apasă iar';b.classList.add('danger');setTimeout(()=>{if(b.isConnected){b.dataset.arm='';b.textContent='Eliberează';b.classList.remove('danger')}},4000);return}
   try{await api('/rest/v1/devices?id=eq.'+d.id,{method:'PATCH',body:JSON.stringify({released:true})});toast('Loc eliberat. Telefonul se va bloca la următoarea verificare.');load()}catch(e){toast(e.message)}
+}
+
+/* ---------- manager (boss) accounts ---------- */
+let mCo=null,mCur=null;
+function genPass(){const A='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';const a=new Uint32Array(12);crypto.getRandomValues(a);return [...a].map(x=>A[x%A.length]).join('')}
+function openMgr(c,m){mCo=c;mCur=m;$('mTitle').textContent=m?`Parolă nouă pentru ${m.username}`:`Acces șef – ${c.name}`;
+  $('mUser').value=m?m.username:c.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,16);$('mUser').readOnly=!!m;
+  $('mPass').value=genPass();$('mErr').hidden=true;$('mEdit').hidden=false;$('mDone').hidden=true;$('mdlg').showModal()}
+$('mGen').onclick=()=>{$('mPass').value=genPass()};
+$('mCancel').onclick=()=>$('mdlg').close();$('mClose').onclick=()=>$('mdlg').close();
+$('mCopy').onclick=()=>copy($('mCred').textContent);
+$('mfrm').addEventListener('submit',async ev=>{
+  ev.preventDefault();if($('mEdit').hidden)return;const err=x=>{$('mErr').textContent=x;$('mErr').hidden=false};
+  const u=$('mUser').value.trim().toLowerCase(),pw=$('mPass').value;
+  if(!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(u))return err('Utilizatorul trebuie să aibă 3–32 de caractere: litere mici, cifre, punct, cratimă.');
+  if(pw.length<8)return err('Parola trebuie să aibă cel puțin 8 caractere.');
+  if(!mCur&&mgrs.some(m=>m.username===u))return err('Există deja un cont cu acest utilizator.');
+  try{
+    const r=await api('/rest/v1/rpc/tl_admin_set_manager',{method:'POST',body:JSON.stringify({p_company:mCo.id,p_username:u,p_password:pw})});
+    if(!r||!r.ok)return err({taken:'Utilizatorul este deja folosit.',bad_username:'Utilizator nepotrivit.',bad_password:'Parolă prea scurtă.'}[r&&r.error]||'Nu s-a putut salva.');
+    $('mCred').textContent=`Site: ${PORTAL_URL}\nUtilizator: ${u}\nParolă: ${pw}`;$('mEdit').hidden=true;$('mDone').hidden=false;load();
+  }catch(e){err(e.message)}
+});
+async function delMgr(m,b){
+  if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Sigur? Apasă iar';b.classList.add('danger');setTimeout(()=>{if(b.isConnected){b.dataset.arm='';b.textContent='Șterge';b.classList.remove('danger')}},4000);return}
+  try{await api('/rest/v1/rpc/tl_admin_del_manager',{method:'POST',body:JSON.stringify({p_user:m.user_id})});toast('Cont șters');load()}catch(e){toast(e.message)}
 }
 
 /* ---------- form ---------- */
@@ -300,7 +380,7 @@ $('btnDel').onclick=async()=>{
 };
 
 /* ---------- demo data (preview only) ---------- */
-let demoDb=null;
+let demoDb=null,demoMgrs=[{user_id:'u1',company_id:'m',username:'markhuisman'},{user_id:'u2',company_id:'p',username:'popescu.dispecer'}];
 function demoApi(path,opt){
   if(!demoDb){const now=Date.now(),d=(h)=>new Date(now-h*3600e3).toISOString();
     demoDb=[
@@ -319,6 +399,11 @@ function demoApi(path,opt){
     if(m==='PATCH'){const c=demoDb.find(x=>x.id===id);Object.assign(c,body);return Promise.resolve([])}
     if(m==='DELETE'){demoDb=demoDb.filter(x=>x.id!==id);return Promise.resolve(null)}
   }
+  if(path.includes('/rpc/tl_is_admin'))return Promise.resolve(true);
+  if(path.includes('/rpc/tl_admin_usage'))return Promise.resolve({db_bytes:31*1048576,drivers:8,days:412,companies:{m:1.9*1048576,p:16.4*1048576}});
+  if(path.startsWith('/rest/v1/managers'))return Promise.resolve(JSON.parse(JSON.stringify(demoMgrs)));
+  if(path.includes('/rpc/tl_admin_set_manager')){const b=JSON.parse(opt.body);const ex=demoMgrs.find(x=>x.username===b.p_username);if(!ex)demoMgrs.push({user_id:'u'+Date.now(),company_id:b.p_company,username:b.p_username});return Promise.resolve({ok:true})}
+  if(path.includes('/rpc/tl_admin_del_manager')){const b=JSON.parse(opt.body);demoMgrs=demoMgrs.filter(x=>x.user_id!==b.p_user);return Promise.resolve({ok:true})}
   if(path.startsWith('/rest/v1/devices')&&m==='PATCH'){demoDb.forEach(c=>(c.devices||[]).forEach(d=>{if(d.id===id)d.released=true}));return Promise.resolve([])}
   return Promise.resolve(null);
 }

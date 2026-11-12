@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Truck Log Portal</title>
+<style>
+/* Company portal: read-only view of all drivers of one company. Desktop first, works on a phone. */
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --ink:#14202e; --muted:#5b6878; --line:#d5dbe3; --soft:#f5f7fa;
+  --navy:#16324f; --navy-ink:#f4f7fb; --navy-muted:#a9bbd0;
+  --accent:#e8a317; --accent-ink:#1b1300; --danger:#c0392b; --ok:#2e7d4f; --warnbg:#fff4d6; --badbg:#fde7e4; --infobg:#e6eef8;
+  --display:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c141e; --panel:#142130; --ink:#e6edf5; --muted:#93a3b6; --line:#25364a; --soft:#101b28;
+  --navy:#0a1622; --navy-ink:#eef4fb; --navy-muted:#8fa3ba;
+  --accent:#f0b43a; --accent-ink:#1b1300; --danger:#ff6b5b; --ok:#5fcf8c; --warnbg:#3a2e10; --badbg:#3d1a17; --infobg:#16293f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c141e; --panel:#142130; --ink:#e6edf5; --muted:#93a3b6; --line:#25364a; --soft:#101b28;
+  --navy:#0a1622; --navy-ink:#eef4fb; --navy-muted:#8fa3ba;
+  --accent:#f0b43a; --accent-ink:#1b1300; --danger:#ff6b5b; --ok:#5fcf8c; --warnbg:#3a2e10; --badbg:#3d1a17; --infobg:#16293f; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.02em;text-wrap:balance}
+h2{font-size:20px;text-transform:uppercase}
+h3{font-size:16px;text-transform:uppercase;color:var(--muted)}
+a{color:inherit}
+.bar{background:var(--navy);color:var(--navy-ink)}
+.barin{max-width:1280px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.brand{display:flex;flex-direction:column;border-left:3px solid var(--accent);padding-left:10px;line-height:1.15;margin-bottom:10px;min-width:0}
+.brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy-muted)}
+.brand b{font-family:var(--display);font-size:22px;font-weight:600;letter-spacing:.02em;overflow-wrap:anywhere}
+.nav{display:flex;gap:2px;align-self:flex-end;flex:1;min-width:0;overflow-x:auto}
+.nav button{font:inherit;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:transparent;color:var(--navy-muted);border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.nav button[aria-selected="true"]{color:var(--navy-ink);border-bottom-color:var(--accent)}
+.barright{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--navy-muted)}
+.barright select{width:auto;padding:6px 8px;font-size:14px;background:var(--navy);color:var(--navy-ink);border-color:#3b5673}
+.wrap{max-width:1280px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 56px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;min-width:0}
+input,select{font:inherit;font-size:15px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0;text-transform:none;letter-spacing:normal}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,tr:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.navy{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+.btn.ghost{background:transparent;color:var(--navy-ink);border-color:#3b5673}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.6;cursor:default}
+.err{color:var(--danger);font-weight:600;margin:0}
+.note{margin:0;color:var(--muted);font-size:14px}
+.demo{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 12px;font-weight:600;font-size:14px}
+.login{max-width:380px;margin:8vh auto 0;width:100%}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.kpi span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi.att b{color:var(--danger)}
+.kpi.att.zero b{color:var(--ok)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.alerts{display:flex;flex-direction:column;gap:6px}
+.al{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-radius:8px;background:var(--infobg);cursor:pointer;border:0;font:inherit;color:inherit;text-align:left;width:100%}
+.al.bad{background:var(--badbg)}.al.warn{background:var(--warnbg)}
+.al .dot{width:10px;height:10px;border-radius:50%;background:#4a78b5}
+.al.bad .dot{background:var(--danger)}.al.warn .dot{background:var(--accent)}
+.al b{font-weight:600}
+.al small{color:var(--muted)}
+.ok{color:var(--ok);font-weight:600}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;background:var(--soft);border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.t{font-family:var(--mono);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--soft)}
+tr.total td{font-weight:700;background:var(--soft)}
+tr.daysep td{background:var(--soft);padding:8px 10px}
+tr.daysep .dname{font-family:var(--display);font-weight:600;font-size:16px}
+tr.daysep .dsum{font-size:13px;color:var(--muted)}
+td.empty{color:var(--muted);text-align:center;padding:24px}
+.dn{font-weight:600;font-size:15px}
+.dn small{display:block;font-weight:400;color:var(--muted);font-size:13px}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;color:#fff;font-family:var(--display);font-weight:600;font-size:14px;white-space:nowrap;background:#3a4656}
+.chip.light{color:#111}
+.sub{display:block;font-size:12px;color:var(--muted);white-space:nowrap}
+.stale{color:var(--danger)}
+.mini{display:grid;grid-template-columns:auto 80px;gap:2px 8px;align-items:center;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mbar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.mbar i{display:block;height:100%;background:var(--ok)}
+.mbar.near i{background:var(--accent)}.mbar.over i{background:var(--danger)}
+.tl{position:relative;height:22px;min-width:180px;border:1px solid var(--line);border-radius:5px;overflow:hidden;background-color:var(--bg);background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:calc(100% / 24) 100%}
+.tl .seg{position:absolute;top:0;bottom:0}
+.tl .nowl{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.8}
+.tlaxis{position:relative;height:14px;font:11px/14px var(--mono);color:var(--muted)}
+.tlaxis span{position:absolute;transform:translateX(-50%)}
+.tlaxis span:first-child{transform:none}.tlaxis span:last-child{transform:translateX(-100%)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.strip{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:3px 0}
+.strip .sl{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.strip .sl b{color:var(--ink);font-weight:600}
+.period{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.period .field{width:150px}
+.period .quick{display:flex;gap:6px;flex-wrap:wrap}
+.spacer{flex:1}
+.exports{display:flex;gap:6px;align-items:end;flex-wrap:wrap}
+.exports select{width:auto}
+.dhead{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:start}
+.dtitle{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
+.facts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:600}
+.lims{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px}
+.lim{border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.lim span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lim b{font-family:var(--mono);font-weight:500;font-size:15px;font-variant-numeric:tabular-nums}
+.lim .mbar{margin-top:5px}
+.lim.over b{color:var(--danger)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-weight:600;background:transparent;border:0;border-bottom:3px solid transparent;padding:8px 14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px);z-index:5}
+.toast.show{opacity:1}
+.foot{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:space-between}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}.lims{grid-template-columns:1fr 1fr}.dhead{grid-template-columns:1fr}}
+@media (max-width:560px){.kpis{grid-template-columns:1fr 1fr}.kpi b{font-size:22px}.strip{grid-template-columns:1fr}.period .field{width:calc(50% - 4px)}.dtitle{font-size:24px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{.bar,.period,.exports,.tabs,.btn{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="bar"><div class="barin">
+  <div class="brand"><span>Truck Log</span><b id="coName" data-i18n="p.title">Company portal</b></div>
+  <nav class="nav" id="nav" hidden>
+    <button type="button" data-view="overview" data-i18n="p.overview">Drivers</button>
+    <button type="button" data-view="trips" data-i18n="p.trips">Trips &amp; orders</button>
+    <button type="button" data-view="summary" data-i18n="p.summary">Summary</button>
+  </nav>
+  <div class="barright">
+    <span id="who"></span>
+    <select id="lang" aria-label="Language"></select>
+    <button class="btn ghost small" id="btnLogout" type="button" data-i18n="p.logout" hidden>Sign out</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div class="demo" id="demoBar" hidden data-i18n="p.demo"></div>
+
+  <section class="panel login" id="vLogin" hidden>
+    <h2 data-i18n="p.signinT">Sign in</h2>
+    <div class="field"><label for="lUser" data-i18n="p.user">User</label><input id="lUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+    <div class="field"><label for="lPass" data-i18n="p.pass">Password</label><input id="lPass" type="password" autocomplete="current-password"></div>
+    <p class="err" id="lErr" hidden></p>
+    <div><button class="btn primary" id="btnLogin" type="button" data-i18n="p.signin">Sign in</button></div>
+    <p class="note" data-i18n="p.loginNote"></p>
+  </section>
+
+  <!-- period bar: lives inside the active view -->
+  <div class="period" id="periodBar" hidden>
+    <div class="field"><label for="from" data-i18n="p.from">From</label><input id="from" type="date"></div>
+    <div class="field"><label for="to" data-i18n="p.to">To</label><input id="to" type="date"></div>
+    <div class="quick">
+      <button class="btn" type="button" data-range="week" data-i18n="p.week">7 days</button>
+      <button class="btn" type="button" data-range="month" data-i18n="p.month">This month</button>
+      <button class="btn" type="button" data-range="prev" data-i18n="p.prevMonth">Last month</button>
+      <button class="btn" type="button" data-range="all" data-i18n="p.all">All</button>
+    </div>
+  </div>
+
+  <!-- drivers overview -->
+  <section id="vOverview" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="kpis">
+      <div class="kpi"><span data-i18n="p.kDrivers">Drivers</span><b id="kDrivers">0</b></div>
+      <div class="kpi"><span data-i18n="p.kDriving">Driving now</span><b id="kDriving">0</b></div>
+      <div class="kpi"><span data-i18n="p.kWorking">Other work</span><b id="kWorking">0</b></div>
+      <div class="kpi"><span data-i18n="p.kResting">Resting / off duty</span><b id="kResting">0</b></div>
+      <div class="kpi att" id="kAttBox"><span data-i18n="p.kAttention">Need attention</span><b id="kAtt">0</b></div>
+    </div>
+    <div class="panel">
+      <div class="head"><h2 data-i18n="p.attention">Needs attention</h2></div>
+      <div class="alerts" id="alerts"></div>
+    </div>
+    <div class="panel">
+      <div class="head"><h2 data-i18n="p.overview">Drivers</h2><div style="display:flex;gap:8px;align-items:center"><span class="note" id="updated"></span><button class="btn small" id="btnReload" type="button" data-i18n="p.reload">Refresh</button></div></div>
+      <div class="tablebox"><table><thead id="ovHead"></thead><tbody id="ovRows"></tbody></table></div>
+      <div class="legend" id="ovLegend"></div>
+      <p class="note" data-i18n="p.liveNote"></p>
+    </div>
+    <div class="foot"><span id="seats"></span><span id="codeTxt"></span></div>
+  </section>
+
+  <!-- one driver -->
+  <section id="vDriver" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div><button class="btn" id="btnBack" type="button" data-i18n="p.back">← All drivers</button></div>
+    <div class="panel">
+      <div class="dhead">
+        <div style="min-width:0"><div class="dtitle" id="dName"></div><div class="facts" id="dFacts"></div></div>
+        <div id="dNow" style="text-align:right"></div>
+      </div>
+      <div class="lims" id="dLims"></div>
+      <p class="note" data-i18n="p.limNote"></p>
+    </div>
+    <div class="panel">
+      <div class="head" style="align-items:end">
+        <div class="pslot"></div>
+        <div class="exports">
+          <div class="field"><label for="repKind" data-i18n="p.report">Report</label><select id="repKind"><option value="days" data-i18n="p.byDays">By days</option><option value="totals" data-i18n="p.totals">Totals</option></select></div>
+          <button class="btn primary" id="xlsBtn" type="button">Excel</button>
+          <button class="btn primary" id="pdfBtn" type="button">PDF</button>
+        </div>
+      </div>
+      <div class="tabs" id="dTabs">
+        <button type="button" data-dt="days" data-i18n="p.days">Days</button>
+        <button type="button" data-dt="log" data-i18n="p.log">Log</button>
+        <button type="button" data-dt="trips" data-i18n="p.tripsTab">Trips</button>
+        <button type="button" data-dt="fuel" data-i18n="p.fuel">Fuel</button>
+      </div>
+      <div id="dt-days" style="display:flex;flex-direction:column;gap:12px">
+        <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+          <div class="kpi"><span data-i18n="p.km">Km</span><b id="dKm">0</b></div>
+          <div class="kpi"><span data-i18n="p.driving">Driving</span><b id="dDrive">0:00</b></div>
+          <div class="kpi"><span data-i18n="p.work">Work time</span><b id="dWork">0:00</b></div>
+          <div class="kpi"><span data-i18n="p.daysWorked">Days worked</span><b id="dDays">0</b></div>
+        </div>
+        <div class="tablebox"><table><thead id="sumHead"></thead><tbody id="sumRows"></tbody></table></div>
+        <h3 data-i18n="p.dayStrips">Day by day</h3>
+        <div id="strips"></div><div class="legend" id="stripLegend"></div>
+      </div>
+      <div id="dt-log" hidden style="display:flex;flex-direction:column;gap:10px">
+        <input id="q" type="search" data-i18n-ph="p.search" placeholder="Search">
+        <div class="tablebox" style="max-height:70vh;overflow:auto"><table><thead id="logHead"></thead><tbody id="logRows"></tbody></table></div>
+        <span class="note" id="logCount"></span>
+      </div>
+      <div id="dt-trips" hidden><div class="tablebox"><table><thead id="dtHead"></thead><tbody id="dtRows"></tbody></table></div></div>
+      <div id="dt-fuel" hidden style="display:flex;flex-direction:column;gap:10px"><div class="facts" id="fuelSum"></div><div class="tablebox"><table><thead id="fuelHead"></thead><tbody id="fuelRows"></tbody></table></div></div>
+    </div>
+  </section>
+
+  <!-- trips and orders of all drivers -->
+  <section id="vTrips" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="head" style="align-items:end"><div class="pslot"></div><div class="field" style="width:280px;max-width:100%"><label for="tq" data-i18n="p.find">Find</label><input id="tq" type="search" data-i18n-ph="p.searchTrips" placeholder=""></div></div>
+      <h2 data-i18n="p.tripsTab">Trips</h2>
+      <div class="tablebox"><table><thead id="trHead"></thead><tbody id="trRows"></tbody></table></div>
+      <h2 data-i18n="p.ordersList">Orders</h2>
+      <div class="tablebox"><table><thead id="orHead"></thead><tbody id="orRows"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- totals per driver -->
+  <section id="vSummary" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="head" style="align-items:end"><div class="pslot"></div>
+        <div class="exports"><button class="btn primary" id="allXls" type="button" data-i18n="p.exportAll">Excel – all drivers</button><button class="btn primary" id="allPdf" type="button" data-i18n="p.pdfAll">PDF – all drivers</button></div></div>
+      <div class="tablebox"><table><thead id="smHead"></thead><tbody id="smRows"></tbody></table></div>
+      <p class="note" data-i18n="p.sumNote"></p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+const ACTS=[
+  {k:'Driving',ic:'drive'},{k:'Loading',ic:'load',order:true},{k:'Unload',ic:'unload',order:true},
+  {k:'Coupling',ic:'couple',trailer:true},{k:'Uncoupling',ic:'uncouple',trailer:true},{k:'Register',ic:'reg'},
+  {k:'Wait',ic:'wait'},{k:'Break',ic:'brk'},{k:'Sleep',ic:'sleep'},
+  {k:'Fuel',ic:'fuel'},{k:'Truckwash',ic:'wash'},{k:'Maintenance',ic:'maint'},
+  {k:'Traffic jam',ic:'jam',full:true},
+  {k:'Other',ic:'other',full:true,other:true},
+  {k:'Break down',ic:'down',full:true,warn:true}
+];
+const DAYT=['Start day','End day'];
+const ORDER=[...ACTS.map(a=>a.k),'Unknown'];
+const ALLTYPES=[...DAYT,...ORDER,'Border'];
+const REST=new Set(['Break','Sleep']);
+const workMs=acts=>Object.keys(acts).reduce((s,a)=>REST.has(a)?s:s+(acts[a]||0),0);
+const dispType=e=>e.type==='Other'&&e.other?e.other:tA(e.type);
+function fillOtherList(){const dl=$('otherList');if(!dl)return;const seen=new Map();sorted().reverse().forEach(e=>{if(e.type==='Other'&&e.other&&!seen.has(e.other.toLowerCase()))seen.set(e.other.toLowerCase(),e.other)});dl.innerHTML='';[...seen.values()].slice(0,15).forEach(v=>{const o=document.createElement('option');o.value=v;dl.appendChild(o)})}
+const isTrailerType=t=>t==='Coupling'||t==='Uncoupling';
+const DEFAULT_CO='Mark Huisman Solutions';
+const co=()=>(settings.company||'').trim();
+/* ===== interface languages (exports always stay in English) ===== */
+const LANGS=[['en','English'],['ro','Română'],['de','Deutsch'],['fr','Français'],['nl','Nederlands']];
+const LOCALE={en:'en-GB',ro:'ro-RO',de:'de-DE',fr:'fr-FR',nl:'nl-NL'};
+const L={
+en:{
+ 'activities':'Activities','drivers':'Drivers','language':'Language',
+ 'driverName':'Driver name','driverPh':'First and last name','tripNo':'Trip no.','tripPh':'e.g. 4521',
+ 'curAct':'Current activity','duration':'Duration','hintStart':'Tap “Start day” and enter the odometer km to begin.',
+ 'locLabel':'Location (saved with every activity)','locPh':'e.g. Leipzig, DE – A14 truck stop','gpsReading':'Reading GPS… If it fails, type the city/country.',
+ 'dailyTotals':'Daily totals','from':'From','to':'To','last7':'Last 7 days','thisMonth':'This month','all':'All','exportXls':'Export Excel','exportPdf':'Export PDF',
+ 'log':'Log','thStart':'Start','thEnd':'End','thDuration':'Duration','thActivity':'Activity','thDetails':'Details','thLocation':'Location','thNote':'Note',
+ 'autoSaved':'Data is saved automatically on this phone.','saveBackup':'Save backup','loadBackup':'Load backup',
+ 'odoLabel':'Odometer (km on the dashboard)','odoPh':'e.g. 482 350','trailerNo':'Trailer number','trailerPh':'e.g. OZ-12-ABC','cancel':'Cancel','save':'Save',
+ 'editEntry':'Edit entry','activity':'Activity','dateTime':'Date and time','odoKm':'Odometer km','location':'Location','note':'Note','delete':'Delete','delConfirm':'Tap “Delete” again to confirm.',
+ 'msgCoupleStill':'Trailer {t} is still coupled. Enter the trailer you are coupling now.','msgCouple':'Enter the number of the trailer you are coupling.','msgUncouple':'Which trailer are you uncoupling?',
+ 'saved':'{a} – {h} saved','msgDayOpen':'A day is already open since {d}. Saving starts a new day.','msgEnterKm':'Enter the km shown on the dashboard now.',
+ 'msgDayStarted':'Day started {d} at {km} km. Enter the km on the dashboard now.','msgNoDay':'No open day found. You can still save the km.','dayEnded':'Day ended – {km} km driven',
+ 'startKm':'Start: {km} km','drivenToday':'Driven today: {km} km',
+ 'errKm':'Enter the odometer reading in km.','errLower':'End km cannot be lower than the start km ({km}).','errTrailer':'Enter the trailer number.','errOdo':'Enter the odometer km.',
+ 'dayStarted':'Day started','trailer':'Trailer','trip':'Trip','offDuty':'Off duty','dayEndedAt':'Day ended {d}','since':'Since {d}',
+ 'day':'Day','km':'Km','noActivity':'No activity in the selected period.','totalDays':'Total ({n} days)','totalDay':'Total (1 day)','kmAfterEnd':'km after End day',
+ 'now':'now','map':'map','noEntries':'No entries in the selected period. Tap “Start day” or an activity to add the first one.','edit':'Edit','count':'{a} shown · {b} total',
+ 'changesSaved':'Changes saved','entryDeleted':'Entry deleted','nothingExport':'Nothing to export in the selected period','xlsMissing':'Excel tool not loaded','pdfMissing':'PDF tool not loaded',
+ 'imported':'{n} entries imported','badBackup':'This file is not a valid backup','fileSaved':'File saved','fileNotSaved':'Could not save the file','noDownload':'Download did not start','exportFail':'Could not export: {e}','saveOrSend':'Save or send {f}',
+ 'gpsOn':'GPS on: {c} (saved automatically; the text above is your own description)','gpsOffManual':'Location is off or not allowed. Turn on Location and allow it for this app, or type the city/country.','gpsOff':'GPS not available. Type the location (city, country).',
+ 'a.Start day':'Start day','a.End day':'End day','a.Driving':'Driving','a.Loading':'Loading','a.Unload':'Unload','a.Coupling':'Coupling','a.Uncoupling':'Uncoupling','a.Register':'Register','a.Wait':'Wait','a.Break':'Break','a.Sleep':'Sleep','a.Fuel':'Fuel','a.Truckwash':'Truckwash','a.Maintenance':'Maintenance','a.Break down':'Break down'
+},
+ro:{
+ 'activities':'Activități','drivers':'Șoferi','language':'Limba',
+ 'driverName':'Numele șoferului','driverPh':'Nume și prenume','tripNo':'Nr. cursă','tripPh':'ex. 4521',
+ 'curAct':'Activitate curentă','duration':'Durată','hintStart':'Apasă „Început zi” și scrie km de la bord ca să începi.',
+ 'locLabel':'Locația (se salvează la fiecare activitate)','locPh':'ex. Leipzig, DE – parcare A14','gpsReading':'Citesc GPS-ul… Dacă nu merge, scrie orașul/țara.',
+ 'dailyTotals':'Totaluri pe zile','from':'De la','to':'Până la','last7':'Ultimele 7 zile','thisMonth':'Luna aceasta','all':'Tot','exportXls':'Export Excel','exportPdf':'Export PDF',
+ 'log':'Registru','thStart':'Start','thEnd':'Sfârșit','thDuration':'Durată','thActivity':'Activitate','thDetails':'Detalii','thLocation':'Locație','thNote':'Notă',
+ 'autoSaved':'Datele se salvează automat pe acest telefon.','saveBackup':'Salvează backup','loadBackup':'Încarcă backup',
+ 'odoLabel':'Kilometraj (km de la bord)','odoPh':'ex. 482 350','trailerNo':'Numărul remorcii','trailerPh':'ex. OZ-12-ABC','cancel':'Anulează','save':'Salvează',
+ 'editEntry':'Modifică înregistrarea','activity':'Activitate','dateTime':'Data și ora','odoKm':'Kilometraj','location':'Locație','note':'Notă','delete':'Șterge','delConfirm':'Apasă încă o dată „Șterge” pentru confirmare.',
+ 'msgCoupleStill':'Remorca {t} este încă cuplată. Scrie remorca pe care o cuplezi acum.','msgCouple':'Scrie numărul remorcii pe care o cuplezi.','msgUncouple':'Ce remorcă decuplezi?',
+ 'saved':'{a} – {h} salvat','msgDayOpen':'O zi este deja începută din {d}. Dacă salvezi, începe o zi nouă.','msgEnterKm':'Scrie km afișați acum la bord.',
+ 'msgDayStarted':'Ziua a început {d} la {km} km. Scrie km de la bord acum.','msgNoDay':'Nu există o zi începută. Poți salva totuși km.','dayEnded':'Zi încheiată – {km} km parcurși',
+ 'startKm':'Start: {km} km','drivenToday':'Parcurși azi: {km} km',
+ 'errKm':'Scrie kilometrajul în km.','errLower':'Km de final nu pot fi mai mici decât km de start ({km}).','errTrailer':'Scrie numărul remorcii.','errOdo':'Scrie kilometrajul.',
+ 'dayStarted':'Zi începută','trailer':'Remorcă','trip':'Cursa','offDuty':'Liber','dayEndedAt':'Zi încheiată {d}','since':'Din {d}',
+ 'day':'Ziua','km':'Km','noActivity':'Nicio activitate în perioada aleasă.','totalDays':'Total ({n} zile)','totalDay':'Total (1 zi)','kmAfterEnd':'km după Sfârșit zi',
+ 'now':'acum','map':'hartă','noEntries':'Nicio înregistrare în perioada aleasă. Apasă „Început zi” sau o activitate.','edit':'Modifică','count':'{a} afișate · {b} în total',
+ 'changesSaved':'Modificare salvată','entryDeleted':'Înregistrare ștearsă','nothingExport':'Nimic de exportat în perioada aleasă','xlsMissing':'Unealta Excel nu s-a încărcat','pdfMissing':'Unealta PDF nu s-a încărcat',
+ 'imported':'{n} înregistrări importate','badBackup':'Fișierul nu este un backup valid','fileSaved':'Fișier salvat','fileNotSaved':'Fișierul nu a putut fi salvat','noDownload':'Descărcarea nu a pornit','exportFail':'Export eșuat: {e}','saveOrSend':'Salvează sau trimite {f}',
+ 'gpsOn':'GPS activ: {c} (se salvează automat; textul de sus e descrierea ta)','gpsOffManual':'Locația e oprită sau nepermisă. Pornește Locația și permite-o pentru aplicație, sau scrie orașul/țara.','gpsOff':'GPS indisponibil. Scrie locația (oraș, țară).',
+ 'a.Start day':'Început zi','a.End day':'Sfârșit zi','a.Driving':'Condus','a.Loading':'Încărcare','a.Unload':'Descărcare','a.Coupling':'Cuplare','a.Uncoupling':'Decuplare','a.Register':'Înregistrare','a.Wait':'Așteptare','a.Break':'Pauză','a.Sleep':'Odihnă','a.Fuel':'Alimentare','a.Truckwash':'Spălare camion','a.Maintenance':'Întreținere','a.Break down':'Defecțiune'
+},
+de:{
+ 'activities':'Aktivitäten','drivers':'Fahrer','language':'Sprache',
+ 'driverName':'Name des Fahrers','driverPh':'Vor- und Nachname','tripNo':'Tour-Nr.','tripPh':'z. B. 4521',
+ 'curAct':'Aktuelle Tätigkeit','duration':'Dauer','hintStart':'Tippe auf „Tagesbeginn“ und gib den Kilometerstand ein.',
+ 'locLabel':'Ort (wird bei jeder Tätigkeit gespeichert)','locPh':'z. B. Leipzig, DE – Rastplatz A14','gpsReading':'GPS wird gelesen… Falls nicht, Stadt/Land eingeben.',
+ 'dailyTotals':'Tagessummen','from':'Von','to':'Bis','last7':'Letzte 7 Tage','thisMonth':'Dieser Monat','all':'Alle','exportXls':'Excel exportieren','exportPdf':'PDF exportieren',
+ 'log':'Protokoll','thStart':'Beginn','thEnd':'Ende','thDuration':'Dauer','thActivity':'Tätigkeit','thDetails':'Details','thLocation':'Ort','thNote':'Notiz',
+ 'autoSaved':'Daten werden automatisch auf diesem Handy gespeichert.','saveBackup':'Backup speichern','loadBackup':'Backup laden',
+ 'odoLabel':'Kilometerstand (km laut Tacho)','odoPh':'z. B. 482 350','trailerNo':'Auflieger-Kennzeichen','trailerPh':'z. B. OZ-12-ABC','cancel':'Abbrechen','save':'Speichern',
+ 'editEntry':'Eintrag bearbeiten','activity':'Tätigkeit','dateTime':'Datum und Uhrzeit','odoKm':'Kilometerstand','location':'Ort','note':'Notiz','delete':'Löschen','delConfirm':'Zum Bestätigen noch einmal auf „Löschen“ tippen.',
+ 'msgCoupleStill':'Auflieger {t} ist noch angekuppelt. Gib den Auflieger ein, den du jetzt ankuppelst.','msgCouple':'Gib das Kennzeichen des Aufliegers ein, den du ankuppelst.','msgUncouple':'Welchen Auflieger kuppelst du ab?',
+ 'saved':'{a} – {h} gespeichert','msgDayOpen':'Seit {d} ist bereits ein Tag offen. Speichern beginnt einen neuen Tag.','msgEnterKm':'Gib den aktuellen Kilometerstand ein.',
+ 'msgDayStarted':'Tag begonnen {d} bei {km} km. Gib jetzt den Kilometerstand ein.','msgNoDay':'Kein offener Tag gefunden. Du kannst die km trotzdem speichern.','dayEnded':'Tag beendet – {km} km gefahren',
+ 'startKm':'Start: {km} km','drivenToday':'Heute gefahren: {km} km',
+ 'errKm':'Gib den Kilometerstand in km ein.','errLower':'End-km dürfen nicht kleiner als Start-km sein ({km}).','errTrailer':'Gib das Auflieger-Kennzeichen ein.','errOdo':'Gib den Kilometerstand ein.',
+ 'dayStarted':'Tag begonnen','trailer':'Auflieger','trip':'Tour','offDuty':'Feierabend','dayEndedAt':'Tag beendet {d}','since':'Seit {d}',
+ 'day':'Tag','km':'Km','noActivity':'Keine Tätigkeit im gewählten Zeitraum.','totalDays':'Summe ({n} Tage)','totalDay':'Summe (1 Tag)','kmAfterEnd':'km nach Tagesende',
+ 'now':'jetzt','map':'Karte','noEntries':'Keine Einträge im gewählten Zeitraum. Tippe auf „Tagesbeginn“ oder eine Tätigkeit.','edit':'Ändern','count':'{a} angezeigt · {b} gesamt',
+ 'changesSaved':'Änderung gespeichert','entryDeleted':'Eintrag gelöscht','nothingExport':'Nichts zu exportieren im gewählten Zeitraum','xlsMissing':'Excel-Werkzeug nicht geladen','pdfMissing':'PDF-Werkzeug nicht geladen',
+ 'imported':'{n} Einträge importiert','badBackup':'Diese Datei ist kein gültiges Backup','fileSaved':'Datei gespeichert','fileNotSaved':'Datei konnte nicht gespeichert werden','noDownload':'Download wurde nicht gestartet','exportFail':'Export fehlgeschlagen: {e}','saveOrSend':'{f} speichern oder senden',
+ 'gpsOn':'GPS an: {c} (automatisch gespeichert; der Text oben ist deine eigene Beschreibung)','gpsOffManual':'Standort ist aus oder nicht erlaubt. Standort einschalten und für die App erlauben, oder Stadt/Land eingeben.','gpsOff':'GPS nicht verfügbar. Ort eingeben (Stadt, Land).',
+ 'a.Start day':'Tagesbeginn','a.End day':'Tagesende','a.Driving':'Fahren','a.Loading':'Beladen','a.Unload':'Entladen','a.Coupling':'Ankuppeln','a.Uncoupling':'Abkuppeln','a.Register':'Anmelden','a.Wait':'Warten','a.Break':'Pause','a.Sleep':'Schlafen','a.Fuel':'Tanken','a.Truckwash':'LKW-Wäsche','a.Maintenance':'Wartung','a.Break down':'Panne'
+},
+fr:{
+ 'activities':'Activités','drivers':'Chauffeurs','language':'Langue',
+ 'driverName':'Nom du chauffeur','driverPh':'Prénom et nom','tripNo':'N° de tournée','tripPh':'ex. 4521',
+ 'curAct':'Activité en cours','duration':'Durée','hintStart':'Appuyez sur « Début de journée » et saisissez le kilométrage.',
+ 'locLabel':'Lieu (enregistré avec chaque activité)','locPh':'ex. Leipzig, DE – aire A14','gpsReading':'Lecture du GPS… Sinon, saisissez la ville/le pays.',
+ 'dailyTotals':'Totaux par jour','from':'Du','to':'Au','last7':'7 derniers jours','thisMonth':'Ce mois-ci','all':'Tout','exportXls':'Exporter Excel','exportPdf':'Exporter PDF',
+ 'log':'Journal','thStart':'Début','thEnd':'Fin','thDuration':'Durée','thActivity':'Activité','thDetails':'Détails','thLocation':'Lieu','thNote':'Note',
+ 'autoSaved':'Les données sont enregistrées automatiquement sur ce téléphone.','saveBackup':'Sauvegarder','loadBackup':'Restaurer',
+ 'odoLabel':'Kilométrage (km au compteur)','odoPh':'ex. 482 350','trailerNo':'Numéro de remorque','trailerPh':'ex. OZ-12-ABC','cancel':'Annuler','save':'Enregistrer',
+ 'editEntry':'Modifier l’entrée','activity':'Activité','dateTime':'Date et heure','odoKm':'Kilométrage','location':'Lieu','note':'Note','delete':'Supprimer','delConfirm':'Appuyez encore sur « Supprimer » pour confirmer.',
+ 'msgCoupleStill':'La remorque {t} est encore attelée. Saisissez la remorque que vous attelez maintenant.','msgCouple':'Saisissez le numéro de la remorque que vous attelez.','msgUncouple':'Quelle remorque dételez-vous ?',
+ 'saved':'{a} – {h} enregistré','msgDayOpen':'Une journée est déjà ouverte depuis {d}. Enregistrer commence une nouvelle journée.','msgEnterKm':'Saisissez le kilométrage affiché maintenant.',
+ 'msgDayStarted':'Journée commencée {d} à {km} km. Saisissez le kilométrage actuel.','msgNoDay':'Aucune journée ouverte. Vous pouvez quand même enregistrer les km.','dayEnded':'Journée terminée – {km} km parcourus',
+ 'startKm':'Début : {km} km','drivenToday':'Parcourus aujourd’hui : {km} km',
+ 'errKm':'Saisissez le kilométrage en km.','errLower':'Les km de fin ne peuvent pas être inférieurs aux km de début ({km}).','errTrailer':'Saisissez le numéro de remorque.','errOdo':'Saisissez le kilométrage.',
+ 'dayStarted':'Journée commencée','trailer':'Remorque','trip':'Tournée','offDuty':'Hors service','dayEndedAt':'Journée terminée {d}','since':'Depuis {d}',
+ 'day':'Jour','km':'Km','noActivity':'Aucune activité sur la période choisie.','totalDays':'Total ({n} jours)','totalDay':'Total (1 jour)','kmAfterEnd':'km après fin de journée',
+ 'now':'en cours','map':'carte','noEntries':'Aucune entrée sur la période choisie. Appuyez sur « Début de journée » ou une activité.','edit':'Modifier','count':'{a} affichées · {b} au total',
+ 'changesSaved':'Modification enregistrée','entryDeleted':'Entrée supprimée','nothingExport':'Rien à exporter sur la période choisie','xlsMissing':'Outil Excel non chargé','pdfMissing':'Outil PDF non chargé',
+ 'imported':'{n} entrées importées','badBackup':'Ce fichier n’est pas une sauvegarde valide','fileSaved':'Fichier enregistré','fileNotSaved':'Impossible d’enregistrer le fichier','noDownload':'Le téléchargement n’a pas démarré','exportFail':'Échec de l’export : {e}','saveOrSend':'Enregistrer ou envoyer {f}',
+ 'gpsOn':'GPS actif : {c} (enregistré automatiquement ; le texte ci-dessus est votre description)','gpsOffManual':'La localisation est désactivée ou refusée. Activez-la pour cette appli, ou saisissez la ville/le pays.','gpsOff':'GPS indisponible. Saisissez le lieu (ville, pays).',
+ 'a.Start day':'Début de journée','a.End day':'Fin de journée','a.Driving':'Conduite','a.Loading':'Chargement','a.Unload':'Déchargement','a.Coupling':'Attelage','a.Uncoupling':'Dételage','a.Register':'Enregistrement','a.Wait':'Attente','a.Break':'Pause','a.Sleep':'Repos','a.Fuel':'Carburant','a.Truckwash':'Lavage','a.Maintenance':'Entretien','a.Break down':'Panne'
+},
+nl:{
+ 'activities':'Activiteiten','drivers':'Chauffeurs','language':'Taal',
+ 'driverName':'Naam chauffeur','driverPh':'Voor- en achternaam','tripNo':'Ritnr.','tripPh':'bijv. 4521',
+ 'curAct':'Huidige activiteit','duration':'Duur','hintStart':'Tik op „Dag starten” en vul de kilometerstand in.',
+ 'locLabel':'Locatie (bij elke activiteit opgeslagen)','locPh':'bijv. Leipzig, DE – parking A14','gpsReading':'GPS wordt gelezen… Lukt het niet, vul stad/land in.',
+ 'dailyTotals':'Dagtotalen','from':'Van','to':'Tot','last7':'Laatste 7 dagen','thisMonth':'Deze maand','all':'Alles','exportXls':'Excel exporteren','exportPdf':'PDF exporteren',
+ 'log':'Logboek','thStart':'Begin','thEnd':'Einde','thDuration':'Duur','thActivity':'Activiteit','thDetails':'Details','thLocation':'Locatie','thNote':'Notitie',
+ 'autoSaved':'Gegevens worden automatisch op deze telefoon opgeslagen.','saveBackup':'Back-up opslaan','loadBackup':'Back-up laden',
+ 'odoLabel':'Kilometerstand (km op het dashboard)','odoPh':'bijv. 482 350','trailerNo':'Kenteken oplegger','trailerPh':'bijv. OZ-12-ABC','cancel':'Annuleren','save':'Opslaan',
+ 'editEntry':'Invoer bewerken','activity':'Activiteit','dateTime':'Datum en tijd','odoKm':'Kilometerstand','location':'Locatie','note':'Notitie','delete':'Verwijderen','delConfirm':'Tik nogmaals op „Verwijderen” om te bevestigen.',
+ 'msgCoupleStill':'Oplegger {t} is nog gekoppeld. Vul de oplegger in die je nu koppelt.','msgCouple':'Vul het kenteken in van de oplegger die je koppelt.','msgUncouple':'Welke oplegger koppel je af?',
+ 'saved':'{a} – {h} opgeslagen','msgDayOpen':'Er is al een dag open sinds {d}. Opslaan start een nieuwe dag.','msgEnterKm':'Vul de huidige kilometerstand in.',
+ 'msgDayStarted':'Dag gestart {d} bij {km} km. Vul nu de kilometerstand in.','msgNoDay':'Geen open dag gevonden. Je kunt de km toch opslaan.','dayEnded':'Dag beëindigd – {km} km gereden',
+ 'startKm':'Start: {km} km','drivenToday':'Vandaag gereden: {km} km',
+ 'errKm':'Vul de kilometerstand in km in.','errLower':'Eind-km mag niet lager zijn dan start-km ({km}).','errTrailer':'Vul het kenteken van de oplegger in.','errOdo':'Vul de kilometerstand in.',
+ 'dayStarted':'Dag gestart','trailer':'Oplegger','trip':'Rit','offDuty':'Vrij','dayEndedAt':'Dag beëindigd {d}','since':'Sinds {d}',
+ 'day':'Dag','km':'Km','noActivity':'Geen activiteit in de gekozen periode.','totalDays':'Totaal ({n} dagen)','totalDay':'Totaal (1 dag)','kmAfterEnd':'km na einde dag',
+ 'now':'nu','map':'kaart','noEntries':'Geen invoer in de gekozen periode. Tik op „Dag starten” of een activiteit.','edit':'Bewerken','count':'{a} getoond · {b} totaal',
+ 'changesSaved':'Wijziging opgeslagen','entryDeleted':'Invoer verwijderd','nothingExport':'Niets te exporteren in de gekozen periode','xlsMissing':'Excel-onderdeel niet geladen','pdfMissing':'PDF-onderdeel niet geladen',
+ 'imported':'{n} invoeren geïmporteerd','badBackup':'Dit bestand is geen geldige back-up','fileSaved':'Bestand opgeslagen','fileNotSaved':'Bestand kon niet worden opgeslagen','noDownload':'Download is niet gestart','exportFail':'Exporteren mislukt: {e}','saveOrSend':'{f} opslaan of versturen',
+ 'gpsOn':'GPS aan: {c} (automatisch opgeslagen; de tekst hierboven is je eigen omschrijving)','gpsOffManual':'Locatie staat uit of is niet toegestaan. Zet Locatie aan en sta het toe voor deze app, of vul stad/land in.','gpsOff':'GPS niet beschikbaar. Vul de locatie in (stad, land).',
+ 'a.Start day':'Dag starten','a.End day':'Einde dag','a.Driving':'Rijden','a.Loading':'Laden','a.Unload':'Lossen','a.Coupling':'Koppelen','a.Uncoupling':'Afkoppelen','a.Register':'Aanmelden','a.Wait':'Wachten','a.Break':'Pauze','a.Sleep':'Slapen','a.Fuel':'Tanken','a.Truckwash':'Wassen','a.Maintenance':'Onderhoud','a.Break down':'Pech'
+}};
+
+Object.assign(L.en,{tab_today:'Today',tab_log:'Log',tab_stats:'Statistics',tab_settings:'Settings',todayLine:'Today’s timeline',timePerAct:'Time per activity',kmPerDay:'Km per day',dayByDay:'Day by day',kmDriven:'Km driven',workTime:'Work time',daysWorked:'Days worked',theme:'Appearance',themeAuto:'Automatic',themeLight:'Light',themeDark:'Dark',backup:'Backup',driverTrip:'Driver & trip',ofTotal:'{p}%',noData:'No data in the selected period.'});
+Object.assign(L.ro,{tab_today:'Azi',tab_log:'Registru',tab_stats:'Statistici',tab_settings:'Setări',todayLine:'Cronologia zilei',timePerAct:'Timp pe activitate',kmPerDay:'Km pe zi',dayByDay:'Zi cu zi',kmDriven:'Km parcurși',workTime:'Ore lucrate',daysWorked:'Zile lucrate',theme:'Aspect',themeAuto:'Automat',themeLight:'Luminos',themeDark:'Întunecat',backup:'Backup',driverTrip:'Șofer și cursă',noData:'Nu există date în perioada aleasă.'});
+Object.assign(L.de,{tab_today:'Heute',tab_log:'Protokoll',tab_stats:'Statistik',tab_settings:'Einstellungen',todayLine:'Tagesverlauf',timePerAct:'Zeit pro Tätigkeit',kmPerDay:'Km pro Tag',dayByDay:'Tag für Tag',kmDriven:'Gefahrene km',workTime:'Arbeitszeit',daysWorked:'Arbeitstage',theme:'Darstellung',themeAuto:'Automatisch',themeLight:'Hell',themeDark:'Dunkel',backup:'Backup',driverTrip:'Fahrer & Tour',noData:'Keine Daten im gewählten Zeitraum.'});
+Object.assign(L.fr,{tab_today:'Aujourd’hui',tab_log:'Journal',tab_stats:'Statistiques',tab_settings:'Réglages',todayLine:'Chronologie du jour',timePerAct:'Temps par activité',kmPerDay:'Km par jour',dayByDay:'Jour par jour',kmDriven:'Km parcourus',workTime:'Temps de travail',daysWorked:'Jours travaillés',theme:'Apparence',themeAuto:'Automatique',themeLight:'Clair',themeDark:'Sombre',backup:'Sauvegarde',driverTrip:'Chauffeur et tournée',noData:'Aucune donnée sur la période choisie.'});
+Object.assign(L.nl,{tab_today:'Vandaag',tab_log:'Logboek',tab_stats:'Statistieken',tab_settings:'Instellingen',todayLine:'Tijdlijn van vandaag',timePerAct:'Tijd per activiteit',kmPerDay:'Km per dag',dayByDay:'Dag voor dag',kmDriven:'Gereden km',workTime:'Werktijd',daysWorked:'Gewerkte dagen',theme:'Weergave',themeAuto:'Automatisch',themeLight:'Licht',themeDark:'Donker',backup:'Back-up',driverTrip:'Chauffeur en rit',noData:'Geen gegevens in de gekozen periode.'});
+Object.assign(L.en,{'a.Other':'Other',otherTile:'Other activities',otherQ:'What did you do?',otherPh:'e.g. Ferry, Customs, Tachograph check',errOther:'Write what activity you did.'});
+Object.assign(L.ro,{'a.Other':'Altă activitate',otherTile:'Alte activități',otherQ:'Ce activitate ai făcut?',otherPh:'ex. Feribot, Vamă, Verificare tahograf',errOther:'Scrie ce activitate ai făcut.'});
+Object.assign(L.de,{'a.Other':'Sonstiges',otherTile:'Andere Tätigkeiten',otherQ:'Was hast du gemacht?',otherPh:'z. B. Fähre, Zoll, Tachoprüfung',errOther:'Schreib, was du gemacht hast.'});
+Object.assign(L.fr,{'a.Other':'Autre',otherTile:'Autres activités',otherQ:'Qu’avez-vous fait ?',otherPh:'ex. Ferry, Douane, Contrôle tachygraphe',errOther:'Écrivez l’activité effectuée.'});
+Object.assign(L.nl,{'a.Other':'Overig',otherTile:'Overige activiteiten',otherQ:'Wat heb je gedaan?',otherPh:'bijv. Veerboot, Douane, Tachocontrole',errOther:'Schrijf welke activiteit je deed.'});
+Object.assign(L.en,{"truckNo": "Truck no.", "truckPh": "e.g. AB-123-CD", "truck": "Truck", "autoTitle": "Automatic driving", "autoToggle": "Start Driving automatically above 30 km/h", "autoDesc": "When the truck goes faster than 30 km/h, Driving starts by itself. If it stands still for 3 minutes while on Driving, you get a notification to change the activity. Uses location and notifications; while it is on, a small notification stays visible.", "autoOn": "On – watching the speed", "autoOff": "Off", "autoNA": "Not available here. Works in the installed app.", "autoPerm": "Location or notification permission was refused. Allow them in the phone settings.", "speed": "Speed", "stopTitle": "Truck stopped", "stopBody": "Stopped for {m} min. Change the activity?", "autoDrive": "Driving started automatically", "bgMsg": "Watching speed for automatic Driving", "autoTag": "started automatically", "chooseAct": "Other…"});
+Object.assign(L.ro,{"truckNo": "Nr. camion", "truckPh": "ex. AB-123-CD", "truck": "Camion", "autoTitle": "Condus automat", "autoToggle": "Pornește „Condus” automat peste 30 km/h", "autoDesc": "Când camionul merge cu peste 30 km/h, „Condus” pornește singur. Dacă stă pe loc 3 minute în timp ce e pe „Condus”, primești o notificare să schimbi activitatea. Folosește locația și notificările; cât timp e pornit, rămâne o notificare mică pe ecran.", "autoOn": "Pornit – urmăresc viteza", "autoOff": "Oprit", "autoNA": "Nu e disponibil aici. Funcționează în aplicația instalată.", "autoPerm": "Permisiunea de locație sau de notificări a fost refuzată. Permite-le din setările telefonului.", "speed": "Viteză", "stopTitle": "Camionul stă pe loc", "stopBody": "Oprit de {m} min. Schimbi activitatea?", "autoDrive": "Condus pornit automat", "bgMsg": "Urmăresc viteza pentru Condus automat", "autoTag": "pornit automat", "chooseAct": "Altceva…"});
+Object.assign(L.de,{"truckNo": "LKW-Nr.", "truckPh": "z. B. AB-123-CD", "truck": "LKW", "autoTitle": "Automatisches Fahren", "autoToggle": "„Fahren“ ab 30 km/h automatisch starten", "autoDesc": "Fährt der LKW schneller als 30 km/h, startet „Fahren“ von selbst. Steht er beim Fahren 3 Minuten still, bekommst du eine Benachrichtigung, um die Tätigkeit zu wechseln. Nutzt Standort und Benachrichtigungen; solange es an ist, bleibt eine kleine Benachrichtigung sichtbar.", "autoOn": "An – Geschwindigkeit wird überwacht", "autoOff": "Aus", "autoNA": "Hier nicht verfügbar. Funktioniert in der installierten App.", "autoPerm": "Standort- oder Benachrichtigungsberechtigung wurde verweigert. Bitte in den Handy-Einstellungen erlauben.", "speed": "Geschwindigkeit", "stopTitle": "LKW steht", "stopBody": "Seit {m} Min. angehalten. Tätigkeit ändern?", "autoDrive": "Fahren automatisch gestartet", "bgMsg": "Geschwindigkeit wird für automatisches Fahren überwacht", "autoTag": "automatisch gestartet", "chooseAct": "Andere…"});
+Object.assign(L.fr,{"truckNo": "N° camion", "truckPh": "ex. AB-123-CD", "truck": "Camion", "autoTitle": "Conduite automatique", "autoToggle": "Démarrer « Conduite » automatiquement au-dessus de 30 km/h", "autoDesc": "Quand le camion dépasse 30 km/h, « Conduite » démarre tout seul. S’il reste à l’arrêt 3 minutes pendant la conduite, vous recevez une notification pour changer d’activité. Utilise la localisation et les notifications ; une petite notification reste affichée tant que c’est activé.", "autoOn": "Activé – vitesse surveillée", "autoOff": "Désactivé", "autoNA": "Indisponible ici. Fonctionne dans l’appli installée.", "autoPerm": "Autorisation de localisation ou de notifications refusée. Autorisez-les dans les réglages du téléphone.", "speed": "Vitesse", "stopTitle": "Camion à l’arrêt", "stopBody": "À l’arrêt depuis {m} min. Changer d’activité ?", "autoDrive": "Conduite démarrée automatiquement", "bgMsg": "Surveillance de la vitesse pour la conduite automatique", "autoTag": "démarré automatiquement", "chooseAct": "Autre…"});
+Object.assign(L.nl,{"truckNo": "Kenteken truck", "truckPh": "bijv. AB-123-CD", "truck": "Truck", "autoTitle": "Automatisch rijden", "autoToggle": "„Rijden” automatisch starten boven 30 km/h", "autoDesc": "Rijdt de truck harder dan 30 km/h, dan start „Rijden” vanzelf. Staat hij tijdens het rijden 3 minuten stil, dan krijg je een melding om de activiteit te wijzigen. Gebruikt locatie en meldingen; zolang het aan staat blijft er een kleine melding zichtbaar.", "autoOn": "Aan – snelheid wordt gevolgd", "autoOff": "Uit", "autoNA": "Hier niet beschikbaar. Werkt in de geïnstalleerde app.", "autoPerm": "Toestemming voor locatie of meldingen geweigerd. Sta ze toe in de instellingen van de telefoon.", "speed": "Snelheid", "stopTitle": "Truck staat stil", "stopBody": "{m} min stil. Activiteit wijzigen?", "autoDrive": "Rijden automatisch gestart", "bgMsg": "Snelheid volgen voor automatisch rijden", "autoTag": "automatisch gestart", "chooseAct": "Anders…"});
+Object.assign(L.en,{"a.Unknown": "Unknown", "a.Traffic jam": "Traffic jam", "unkTitle": "Unknown activity", "unkHelp": "The truck stood still. Choose what it was – the time counts from when it stopped.", "unkPick": "Choose…", "convertedFrom": "{a} – counted from {h}", "stopBody": "Stopped since {h}. Saved as Unknown – choose the activity.", "autoDesc": "When the truck goes faster than 30 km/h, Driving starts by itself. If it stands still for 5 minutes while on Driving, the time from the stop is saved as Unknown and you get a notification. You can change Unknown to the right activity at any time, without losing time. Uses location and notifications; while it is on, a small notification stays visible."});
+Object.assign(L.ro,{"a.Unknown": "Necunoscut", "a.Traffic jam": "Ambuteiaj", "unkTitle": "Activitate necunoscută", "unkHelp": "Camionul a stat pe loc. Alege ce a fost – timpul se socotește de când s-a oprit.", "unkPick": "Alege…", "convertedFrom": "{a} – socotit de la {h}", "stopBody": "Oprit din {h}. Salvat ca Necunoscut – alege activitatea.", "autoDesc": "Când camionul merge cu peste 30 km/h, „Condus” pornește singur. Dacă stă pe loc 5 minute în timp ce e pe „Condus”, timpul de la oprire se salvează ca „Necunoscut” și primești o notificare. Poți schimba oricând „Necunoscut” în activitatea corectă, fără să se piardă timp. Folosește locația și notificările; cât timp e pornit, rămâne o notificare mică pe ecran."});
+Object.assign(L.de,{"a.Unknown": "Unbekannt", "a.Traffic jam": "Stau", "unkTitle": "Unbekannte Tätigkeit", "unkHelp": "Der LKW stand still. Wähle, was es war – die Zeit zählt ab dem Anhalten.", "unkPick": "Auswählen…", "convertedFrom": "{a} – ab {h} gezählt", "stopBody": "Steht seit {h}. Als Unbekannt gespeichert – Tätigkeit wählen.", "autoDesc": "Fährt der LKW schneller als 30 km/h, startet „Fahren“ von selbst. Steht er beim Fahren 5 Minuten still, wird die Zeit ab dem Anhalten als „Unbekannt“ gespeichert und du bekommst eine Benachrichtigung. Du kannst „Unbekannt“ jederzeit in die richtige Tätigkeit ändern, ohne Zeit zu verlieren. Nutzt Standort und Benachrichtigungen; solange es an ist, bleibt eine kleine Benachrichtigung sichtbar."});
+Object.assign(L.fr,{"a.Unknown": "Inconnu", "a.Traffic jam": "Embouteillage", "unkTitle": "Activité inconnue", "unkHelp": "Le camion était à l’arrêt. Choisissez ce que c’était – le temps compte depuis l’arrêt.", "unkPick": "Choisir…", "convertedFrom": "{a} – compté depuis {h}", "stopBody": "À l’arrêt depuis {h}. Enregistré comme Inconnu – choisissez l’activité.", "autoDesc": "Quand le camion dépasse 30 km/h, « Conduite » démarre tout seul. S’il reste à l’arrêt 5 minutes pendant la conduite, le temps depuis l’arrêt est enregistré comme « Inconnu » et vous recevez une notification. Vous pouvez à tout moment changer « Inconnu » en la bonne activité, sans perdre de temps. Utilise la localisation et les notifications ; une petite notification reste affichée tant que c’est activé."});
+Object.assign(L.nl,{"a.Unknown": "Onbekend", "a.Traffic jam": "File", "unkTitle": "Onbekende activiteit", "unkHelp": "De truck stond stil. Kies wat het was – de tijd telt vanaf het stoppen.", "unkPick": "Kiezen…", "convertedFrom": "{a} – geteld vanaf {h}", "stopBody": "Stil sinds {h}. Opgeslagen als Onbekend – kies de activiteit.", "autoDesc": "Rijdt de truck harder dan 30 km/h, dan start „Rijden” vanzelf. Staat hij tijdens het rijden 5 minuten stil, dan wordt de tijd vanaf het stoppen opgeslagen als „Onbekend” en krijg je een melding. Je kunt „Onbekend” altijd wijzigen in de juiste activiteit, zonder tijd te verliezen. Gebruikt locatie en meldingen; zolang het aan staat blijft er een kleine melding zichtbaar."});
+Object.assign(L.en,{"limTitle": "Driving time guide", "limCont": "Driving since last break", "limDay": "Driving since daily rest", "limWeek": "Driving this week", "limLeft": "{t} left", "limOver": "{t} over", "limNote": "Guide only, based on what you log here. The tachograph is the official record.", "brkSoonTitle": "Break needed soon", "brkSoonBody": "4h15 of driving since the last break. A 45-minute break is due at 4h30.", "undo": "Undo", "undone": "Undone", "search": "Search: trailer, trip, place…", "addEntry": "Add entry", "screen": "Screen", "keepOn": "Keep the screen on while the app is open", "autoBk": "Last automatic backup: {d} (Documents/TruckLog)", "autoBkNone": "In the installed app, a backup is saved every day in Documents/TruckLog."});
+Object.assign(L.ro,{"limTitle": "Ghid timp de condus", "limCont": "Condus de la ultima pauză", "limDay": "Condus de la odihna zilnică", "limWeek": "Condus săptămâna aceasta", "limLeft": "mai sunt {t}", "limOver": "depășit cu {t}", "limNote": "Doar orientativ, după ce notezi aici. Înregistrarea oficială este tahograful.", "brkSoonTitle": "Pauză necesară în curând", "brkSoonBody": "4h15 de condus de la ultima pauză. La 4h30 trebuie o pauză de 45 de minute.", "undo": "Anulează", "undone": "Anulat", "search": "Caută: remorcă, cursă, loc…", "addEntry": "Adaugă înregistrare", "screen": "Ecran", "keepOn": "Ține ecranul aprins cât timp aplicația e deschisă", "autoBk": "Ultimul backup automat: {d} (Documents/TruckLog)", "autoBkNone": "În aplicația instalată, un backup se salvează zilnic în Documents/TruckLog."});
+Object.assign(L.de,{"limTitle": "Lenkzeit-Übersicht", "limCont": "Lenkzeit seit letzter Pause", "limDay": "Lenkzeit seit Tagesruhezeit", "limWeek": "Lenkzeit diese Woche", "limLeft": "noch {t}", "limOver": "{t} überschritten", "limNote": "Nur zur Orientierung, nach deinen Einträgen. Maßgeblich ist der Tachograph.", "brkSoonTitle": "Pause bald nötig", "brkSoonBody": "4h15 Lenkzeit seit der letzten Pause. Bei 4h30 ist eine 45-Minuten-Pause fällig.", "undo": "Rückgängig", "undone": "Rückgängig gemacht", "search": "Suchen: Auflieger, Tour, Ort…", "addEntry": "Eintrag hinzufügen", "screen": "Bildschirm", "keepOn": "Bildschirm anlassen, solange die App geöffnet ist", "autoBk": "Letztes automatisches Backup: {d} (Documents/TruckLog)", "autoBkNone": "In der installierten App wird täglich ein Backup in Documents/TruckLog gespeichert."});
+Object.assign(L.fr,{"limTitle": "Guide des temps de conduite", "limCont": "Conduite depuis la dernière pause", "limDay": "Conduite depuis le repos journalier", "limWeek": "Conduite cette semaine", "limLeft": "reste {t}", "limOver": "dépassé de {t}", "limNote": "Indicatif seulement, d’après vos saisies. Le tachygraphe fait foi.", "brkSoonTitle": "Pause bientôt nécessaire", "brkSoonBody": "4h15 de conduite depuis la dernière pause. Une pause de 45 minutes est due à 4h30.", "undo": "Annuler", "undone": "Annulé", "search": "Rechercher : remorque, tournée, lieu…", "addEntry": "Ajouter une entrée", "screen": "Écran", "keepOn": "Garder l’écran allumé tant que l’appli est ouverte", "autoBk": "Dernière sauvegarde automatique : {d} (Documents/TruckLog)", "autoBkNone": "Dans l’appli installée, une sauvegarde est enregistrée chaque jour dans Documents/TruckLog."});
+Object.assign(L.nl,{"limTitle": "Rijtijdenoverzicht", "limCont": "Rijtijd sinds laatste pauze", "limDay": "Rijtijd sinds dagelijkse rust", "limWeek": "Rijtijd deze week", "limLeft": "nog {t}", "limOver": "{t} overschreden", "limNote": "Alleen ter indicatie, op basis van je invoer. De tachograaf is leidend.", "brkSoonTitle": "Pauze bijna nodig", "brkSoonBody": "4u15 gereden sinds de laatste pauze. Bij 4u30 is een pauze van 45 minuten verplicht.", "undo": "Ongedaan maken", "undone": "Ongedaan gemaakt", "search": "Zoeken: oplegger, rit, plaats…", "addEntry": "Invoer toevoegen", "screen": "Scherm", "keepOn": "Scherm aan houden zolang de app open is", "autoBk": "Laatste automatische back-up: {d} (Documents/TruckLog)", "autoBkNone": "In de geïnstalleerde app wordt elke dag een back-up opgeslagen in Documents/TruckLog."});
+Object.assign(L.en,{"startTrip": "Start trip", "endTrip": "End trip", "tripNone": "No trip open. Tap “Start trip” when a new trip begins.", "tripSince": "started {d} ({m})", "msgTripNew": "Enter the trip number. The odometer km is optional.", "msgTripOpen": "Trip {n} is still open and will be closed now. Enter the new trip number; km is optional.", "msgTripEnd": "Close trip {n}? The odometer km is optional.", "tripStarted": "Trip {n} started", "tripEnded": "Trip {n} closed", "noTripOpen": "No trip is open.", "errTrip": "Enter the trip number.", "drivenTrip": "Driven on this trip: {km} km", "orderNo": "Order no.", "orderPh": "e.g. 778123", "msgOrder": "Enter the order number. You can leave it empty.", "order": "Order", "trips": "Trips", "tripsHelp": "A report per trip number, with everything done from the start to the end of the trip, even over several days.", "tripSearch": "Search trip number…", "noTrips": "No trips yet. Use “Start trip” on the Today screen.", "repKind": "Report", "repDays": "By days + activity log", "repTotals": "Totals for the period", "ongoing": "ongoing"});
+Object.assign(L.ro,{"startTrip": "Start cursă", "endTrip": "Final cursă", "tripNone": "Nicio cursă deschisă. Apasă „Start cursă” când începe una nouă.", "tripSince": "începută {d} ({m})", "msgTripNew": "Scrie numărul cursei. Kilometrajul este opțional.", "msgTripOpen": "Cursa {n} este încă deschisă și se închide acum. Scrie numărul cursei noi; km sunt opționali.", "msgTripEnd": "Închizi cursa {n}? Kilometrajul este opțional.", "tripStarted": "Cursa {n} a început", "tripEnded": "Cursa {n} a fost închisă", "noTripOpen": "Nu este nicio cursă deschisă.", "errTrip": "Scrie numărul cursei.", "drivenTrip": "Parcurși în această cursă: {km} km", "orderNo": "Nr. ordin", "orderPh": "ex. 778123", "msgOrder": "Scrie numărul ordinului. Poți lăsa gol.", "order": "Ordin", "trips": "Curse", "tripsHelp": "Raport pe numărul cursei, cu tot ce s-a făcut de la start până la închiderea cursei, chiar dacă a durat mai multe zile.", "tripSearch": "Caută numărul cursei…", "noTrips": "Nicio cursă încă. Folosește „Start cursă” pe ecranul Azi.", "repKind": "Raport", "repDays": "Pe zile + registrul activităților", "repTotals": "Totaluri pe perioadă", "ongoing": "în curs"});
+Object.assign(L.de,{"startTrip": "Tour starten", "endTrip": "Tour beenden", "tripNone": "Keine Tour offen. Tippe auf „Tour starten“, wenn eine neue beginnt.", "tripSince": "gestartet {d} ({m})", "msgTripNew": "Gib die Tournummer ein. Der Kilometerstand ist optional.", "msgTripOpen": "Tour {n} ist noch offen und wird jetzt geschlossen. Gib die neue Tournummer ein; km sind optional.", "msgTripEnd": "Tour {n} schließen? Der Kilometerstand ist optional.", "tripStarted": "Tour {n} gestartet", "tripEnded": "Tour {n} geschlossen", "noTripOpen": "Es ist keine Tour offen.", "errTrip": "Gib die Tournummer ein.", "drivenTrip": "Auf dieser Tour gefahren: {km} km", "orderNo": "Auftragsnr.", "orderPh": "z. B. 778123", "msgOrder": "Gib die Auftragsnummer ein. Du kannst sie leer lassen.", "order": "Auftrag", "trips": "Touren", "tripsHelp": "Bericht pro Tournummer mit allem vom Start bis zum Ende der Tour, auch über mehrere Tage.", "tripSearch": "Tournummer suchen…", "noTrips": "Noch keine Touren. Nutze „Tour starten“ auf dem Heute-Bildschirm.", "repKind": "Bericht", "repDays": "Nach Tagen + Tätigkeitsprotokoll", "repTotals": "Summen für den Zeitraum", "ongoing": "läuft"});
+Object.assign(L.fr,{"startTrip": "Début de tournée", "endTrip": "Fin de tournée", "tripNone": "Aucune tournée ouverte. Appuyez sur « Début de tournée » quand une nouvelle commence.", "tripSince": "commencée {d} ({m})", "msgTripNew": "Saisissez le numéro de tournée. Le kilométrage est facultatif.", "msgTripOpen": "La tournée {n} est encore ouverte et sera clôturée maintenant. Saisissez le nouveau numéro ; les km sont facultatifs.", "msgTripEnd": "Clôturer la tournée {n} ? Le kilométrage est facultatif.", "tripStarted": "Tournée {n} commencée", "tripEnded": "Tournée {n} clôturée", "noTripOpen": "Aucune tournée n’est ouverte.", "errTrip": "Saisissez le numéro de tournée.", "drivenTrip": "Parcourus sur cette tournée : {km} km", "orderNo": "N° d’ordre", "orderPh": "ex. 778123", "msgOrder": "Saisissez le numéro d’ordre. Vous pouvez laisser vide.", "order": "Ordre", "trips": "Tournées", "tripsHelp": "Rapport par numéro de tournée, avec tout ce qui a été fait du début à la fin de la tournée, même sur plusieurs jours.", "tripSearch": "Rechercher un numéro de tournée…", "noTrips": "Aucune tournée. Utilisez « Début de tournée » sur l’écran Aujourd’hui.", "repKind": "Rapport", "repDays": "Par jours + journal d’activité", "repTotals": "Totaux de la période", "ongoing": "en cours"});
+Object.assign(L.nl,{"startTrip": "Rit starten", "endTrip": "Rit beëindigen", "tripNone": "Geen rit open. Tik op „Rit starten” wanneer een nieuwe begint.", "tripSince": "gestart {d} ({m})", "msgTripNew": "Vul het ritnummer in. De kilometerstand is optioneel.", "msgTripOpen": "Rit {n} is nog open en wordt nu afgesloten. Vul het nieuwe ritnummer in; km zijn optioneel.", "msgTripEnd": "Rit {n} afsluiten? De kilometerstand is optioneel.", "tripStarted": "Rit {n} gestart", "tripEnded": "Rit {n} afgesloten", "noTripOpen": "Er is geen rit open.", "errTrip": "Vul het ritnummer in.", "drivenTrip": "Gereden op deze rit: {km} km", "orderNo": "Ordernr.", "orderPh": "bijv. 778123", "msgOrder": "Vul het ordernummer in. Je mag het leeg laten.", "order": "Order", "trips": "Ritten", "tripsHelp": "Rapport per ritnummer, met alles van start tot einde van de rit, ook over meerdere dagen.", "tripSearch": "Ritnummer zoeken…", "noTrips": "Nog geen ritten. Gebruik „Rit starten” op het scherm Vandaag.", "repKind": "Rapport", "repDays": "Per dag + activiteitenlog", "repTotals": "Totalen voor de periode", "ongoing": "loopt"});
+Object.assign(L.en,{"company": "Company", "legal": "About & privacy", "privacy": "Privacy policy", "terms": "Terms of use", "licenses": "Open-source licenses", "close": "Close", "deleteAll": "Delete all data", "deleteHelp": "Removes every entry, trip and setting from this phone. Save a backup first if you may need the data.", "deleteText": "This deletes all entries, trips and settings from this phone. It cannot be undone. Backup files you saved earlier are not touched.", "deleteCount": "{n} entries and {m} trips will be deleted.", "deleteArm": "Tap “Delete everything” once more to confirm.", "deleteNow": "Delete everything", "deletedAll": "All data deleted", "licIntro": "Truck Log is built with these open-source components. Thanks to their authors.", "licView": "Show license text", "licMissing": "The full license text is included in the installed app.", "discTitle": "Location in the background", "discText1": "Truck Log uses your phone’s location to switch to Driving by itself when the truck goes faster than 30 km/h, and to notice when it stands still. This also works when the app is closed or the screen is off, as long as the app runs in the background.", "discText2": "Location stays on this phone. It is saved with your entries and is never sent to us or to anyone else.", "discText3": "You can turn this off at any time in Settings.", "discAccept": "Continue", "discDecline": "Not now", "legalDate": "Last updated: 12 November 2026", "legalEnOnly": "Only available in English and Romanian."});
+Object.assign(L.ro,{"company": "Firma", "legal": "Despre și confidențialitate", "privacy": "Politica de confidențialitate", "terms": "Termeni de utilizare", "licenses": "Licențe open-source", "close": "Închide", "deleteAll": "Șterge toate datele", "deleteHelp": "Șterge de pe telefon toate înregistrările, cursele și setările. Salvează întâi un backup, dacă s-ar putea să ai nevoie de date.", "deleteText": "Se șterg de pe telefon toate înregistrările, cursele și setările. Nu se poate anula. Fișierele de backup salvate înainte rămân.", "deleteCount": "Se vor șterge {n} înregistrări și {m} curse.", "deleteArm": "Apasă încă o dată „Șterge tot” pentru confirmare.", "deleteNow": "Șterge tot", "deletedAll": "Toate datele au fost șterse", "licIntro": "Truck Log folosește aceste componente open-source. Mulțumiri autorilor lor.", "licView": "Arată textul licenței", "licMissing": "Textul complet al licenței este inclus în aplicația instalată.", "discTitle": "Locația în fundal", "discText1": "Truck Log folosește locația telefonului ca să treacă singur pe Condus când camionul merge cu peste 30 km/h și ca să observe când stă pe loc. Funcționează și când aplicația nu e pe ecran sau ecranul e stins, cât timp aplicația rulează în fundal.", "discText2": "Locația rămâne pe acest telefon. Se salvează împreună cu înregistrările tale și nu este trimisă nici nouă, nici altcuiva.", "discText3": "Poți opri oricând această funcție din Setări.", "discAccept": "Continuă", "discDecline": "Nu acum", "legalDate": "Ultima actualizare: 12 noiembrie 2026", "legalEnOnly": "Disponibil doar în engleză și română."});
+Object.assign(L.de,{"company": "Firma", "legal": "Über & Datenschutz", "privacy": "Datenschutzerklärung", "terms": "Nutzungsbedingungen", "licenses": "Open-Source-Lizenzen", "close": "Schließen", "deleteAll": "Alle Daten löschen", "deleteHelp": "Entfernt alle Einträge, Touren und Einstellungen von diesem Handy. Speichere vorher ein Backup, falls du die Daten noch brauchst.", "deleteText": "Alle Einträge, Touren und Einstellungen werden von diesem Handy gelöscht. Das kann nicht rückgängig gemacht werden. Früher gespeicherte Backup-Dateien bleiben erhalten.", "deleteCount": "{n} Einträge und {m} Touren werden gelöscht.", "deleteArm": "Tippe zur Bestätigung noch einmal auf „Alles löschen“.", "deleteNow": "Alles löschen", "deletedAll": "Alle Daten gelöscht", "licIntro": "Truck Log nutzt diese Open-Source-Komponenten. Danke an ihre Autoren.", "licView": "Lizenztext anzeigen", "licMissing": "Der vollständige Lizenztext ist in der installierten App enthalten.", "discTitle": "Standort im Hintergrund", "discText1": "Truck Log nutzt den Standort deines Handys, um automatisch auf „Fahren“ zu wechseln, wenn der LKW schneller als 30 km/h fährt, und um zu erkennen, wenn er steht. Das funktioniert auch, wenn die App nicht angezeigt wird oder der Bildschirm aus ist, solange die App im Hintergrund läuft.", "discText2": "Der Standort bleibt auf diesem Handy. Er wird mit deinen Einträgen gespeichert und nie an uns oder andere gesendet.", "discText3": "Du kannst diese Funktion jederzeit in den Einstellungen ausschalten.", "discAccept": "Weiter", "discDecline": "Nicht jetzt", "legalDate": "Zuletzt aktualisiert: 12. November 2026", "legalEnOnly": "Nur auf Englisch und Rumänisch verfügbar."});
+Object.assign(L.fr,{"company": "Entreprise", "legal": "À propos et confidentialité", "privacy": "Politique de confidentialité", "terms": "Conditions d’utilisation", "licenses": "Licences open source", "close": "Fermer", "deleteAll": "Supprimer toutes les données", "deleteHelp": "Supprime de ce téléphone toutes les entrées, tournées et réglages. Faites d’abord une sauvegarde si vous pourriez en avoir besoin.", "deleteText": "Toutes les entrées, tournées et réglages seront supprimés de ce téléphone. C’est irréversible. Les fichiers de sauvegarde enregistrés auparavant sont conservés.", "deleteCount": "{n} entrées et {m} tournées seront supprimées.", "deleteArm": "Appuyez encore une fois sur « Tout supprimer » pour confirmer.", "deleteNow": "Tout supprimer", "deletedAll": "Toutes les données ont été supprimées", "licIntro": "Truck Log utilise ces composants open source. Merci à leurs auteurs.", "licView": "Afficher la licence", "licMissing": "Le texte complet de la licence est inclus dans l’appli installée.", "discTitle": "Localisation en arrière-plan", "discText1": "Truck Log utilise la localisation du téléphone pour passer seul en « Conduite » quand le camion dépasse 30 km/h, et pour détecter quand il est à l’arrêt. Cela fonctionne aussi quand l’appli n’est pas à l’écran ou que l’écran est éteint, tant qu’elle tourne en arrière-plan.", "discText2": "La localisation reste sur ce téléphone. Elle est enregistrée avec vos entrées et n’est jamais envoyée ni à nous ni à personne.", "discText3": "Vous pouvez désactiver cette fonction à tout moment dans les Réglages.", "discAccept": "Continuer", "discDecline": "Pas maintenant", "legalDate": "Dernière mise à jour : 12 novembre 2026", "legalEnOnly": "Disponible uniquement en anglais et en roumain."});
+Object.assign(L.nl,{"company": "Bedrijf", "legal": "Over & privacy", "privacy": "Privacybeleid", "terms": "Gebruiksvoorwaarden", "licenses": "Open-sourcelicenties", "close": "Sluiten", "deleteAll": "Alle gegevens wissen", "deleteHelp": "Verwijdert alle invoer, ritten en instellingen van deze telefoon. Maak eerst een back-up als je de gegevens nog nodig kunt hebben.", "deleteText": "Alle invoer, ritten en instellingen worden van deze telefoon verwijderd. Dit kan niet ongedaan worden gemaakt. Eerder opgeslagen back-upbestanden blijven bestaan.", "deleteCount": "{n} invoeren en {m} ritten worden verwijderd.", "deleteArm": "Tik nogmaals op „Alles wissen” om te bevestigen.", "deleteNow": "Alles wissen", "deletedAll": "Alle gegevens gewist", "licIntro": "Truck Log gebruikt deze open-sourceonderdelen. Dank aan de makers.", "licView": "Licentietekst tonen", "licMissing": "De volledige licentietekst zit in de geïnstalleerde app.", "discTitle": "Locatie op de achtergrond", "discText1": "Truck Log gebruikt de locatie van je telefoon om vanzelf naar „Rijden” te schakelen als de truck harder dan 30 km/h gaat, en om te zien wanneer hij stilstaat. Dit werkt ook als de app niet op het scherm staat of het scherm uit is, zolang de app op de achtergrond draait.", "discText2": "De locatie blijft op deze telefoon. Ze wordt bij je invoer opgeslagen en nooit naar ons of anderen gestuurd.", "discText3": "Je kunt dit altijd uitzetten in Instellingen.", "discAccept": "Doorgaan", "discDecline": "Niet nu", "legalDate": "Laatst bijgewerkt: 12 november 2026", "legalEnOnly": "Alleen beschikbaar in het Engels en Roemeens."});
+const LEGAL={"en": {"privacy": [["Who we are", ["Truck Log is an app for truck drivers to keep a log of their working day. This policy explains what happens with the information you enter. The developer’s contact details are shown on the app’s Google Play page."]], ["What the app stores", ["The activities you log (type, start time, duration), odometer readings, trip and order numbers, trailer and truck numbers, fuel litres, border crossings (country), your name, notes and the location (place name and GPS coordinates) of each activity.", "Your settings, such as language and appearance."]], ["Where it is stored", ["Everything you log is stored on your phone. The app has no advertising and no analytics, and we do not sell your data.", "If the app is activated with a company code, a copy is also sent to your company (see “Sharing with your company”).", "Once a day the app saves a backup file in Documents/TruckLog on your phone, keeping the last 7 days."]], ["Sharing with your company", ["If you activated the app with a company code, the app sends your log to our server so that your company can see it: activities with their times, locations and GPS coordinates, odometer readings, trips, order, trailer and truck numbers, fuel, border crossings, notes and your name. Changes and deletions you make are sent too.", "Only people your company has given a login to can see this data, and only for drivers using that company’s code. Your company decides how it uses the data and is responsible for informing you about it.", "Sending happens automatically when the phone has internet. The app tells you once before it starts. With the 7-day trial code nothing is sent.", "The data stays on the server for as long as the company uses the service. To have it deleted, ask your company or contact us."]], ["Location", ["The app reads your location when you log an activity, so the place is saved with it.", "If you turn on Automatic driving, the app also reads your location in the background to detect the truck’s speed. A notification is shown while this is running. You can turn it off at any time in Settings."]], ["Sharing", ["Apart from the company sharing described above, data leaves your phone only when you choose to export a report or a backup and send it, for example by WhatsApp or e-mail. What happens to it then depends on the app or person you send it to."]], ["Permissions", ["Location: to save where each activity happened and, if you turn it on, for Automatic driving.", "Notifications: for the stop alert and the break reminder.", "Files: to save reports and backups on your phone."]], ["Deleting your data", ["Settings → Delete all data removes everything from the app. Uninstalling the app also removes it. Backup and report files you saved stay on the phone until you delete them."]], ["Activation", ["When you enter an activation code, the app sends the code, an identifier of this phone and the phone model to our activation server. The server keeps them to know how many phones use each code. Now and then the app checks with the server that the code is still valid."]], ["Children", ["The app is meant for adult professional drivers and is not directed at children."]], ["Changes", ["If this policy changes, the new version will be shown in the app with a new date."]]], "terms": [["Use of the app", ["Truck Log helps you keep your own record of working time. You are responsible for entering correct information and for checking it."]], ["Not an official record", ["The driving time guide, the totals and the reports are for information only. They do not replace the tachograph, your employer’s records or any legal obligation. Always follow the official tachograph and the rules that apply to you."]], ["Automatic driving", ["Automatic driving depends on the phone’s GPS. It can be late or miss changes, for example in tunnels, with weak signal or when the phone closes the app to save battery. Check your log and correct it when needed."]], ["Your data", ["Your data stays on your phone. You are responsible for keeping backups. We cannot recover lost data."]], ["No warranty", ["The app is provided “as is”, without any warranty. To the extent the law allows, the developer is not liable for any loss, fine or damage resulting from using the app."]], ["Purchases and refunds", ["If you bought the app on Google Play, Google Play’s refund rules apply."]], ["Changes", ["These terms may be updated with new versions of the app."]]]}, "ro": {"privacy": [["Cine suntem", ["Truck Log este o aplicație pentru șoferii de camion, care le ține evidența zilei de lucru. Această politică explică ce se întâmplă cu informațiile pe care le introduci. Datele de contact ale dezvoltatorului sunt pe pagina aplicației din Google Play."]], ["Ce salvează aplicația", ["Activitățile notate (tipul, ora de început, durata), kilometrajul, numerele de cursă și de ordin, numerele remorcii și camionului, litrii alimentați, trecerile de frontieră (țara), numele tău, notele și locația fiecărei activități (numele locului și coordonatele GPS).", "Setările tale, de exemplu limba și aspectul."]], ["Unde se salvează", ["Tot ce notezi se salvează pe telefonul tău. Aplicația nu are reclame sau statistici de utilizare, iar noi nu vindem datele tale.", "Dacă aplicația e activată cu codul unei firme, o copie se trimite și firmei tale (vezi „Trimiterea către firma ta”).", "O dată pe zi, aplicația salvează un fișier de backup în Documents/TruckLog pe telefon și păstrează ultimele 7 zile."]], ["Trimiterea către firma ta", ["Dacă ai activat aplicația cu codul unei firme, aplicația trimite jurnalul tău pe serverul nostru, ca firma ta să-l poată vedea: activitățile cu orele lor, locațiile și coordonatele GPS, kilometrajul, cursele, numerele de ordin, de remorcă și de camion, alimentările, trecerile de frontieră, notele și numele tău. Se trimit și modificările și ștergerile pe care le faci.", "Datele le pot vedea doar persoanele cărora firma ta le-a dat un cont, și doar pentru șoferii care folosesc codul acelei firme. Firma ta hotărăște cum folosește datele și răspunde de informarea ta.", "Trimiterea se face automat când telefonul are internet. Aplicația te anunță o dată înainte să înceapă. Cu codul de probă de 7 zile nu se trimite nimic.", "Datele rămân pe server cât timp firma folosește serviciul. Ca să fie șterse, cere firmei tale sau contactează-ne."]], ["Locația", ["Aplicația citește locația când notezi o activitate, ca să salveze locul împreună cu ea.", "Dacă pornești Condus automat, aplicația citește locația și în fundal, ca să afle viteza camionului. Cât timp funcționează, se vede o notificare. Poți opri funcția oricând din Setări."]], ["Trimiterea datelor", ["În afară de trimiterea către firmă descrisă mai sus, datele ies de pe telefon doar când alegi tu să exporți un raport sau un backup și să-l trimiți, de exemplu pe WhatsApp sau pe email. Ce se întâmplă apoi cu ele depinde de aplicația sau persoana căreia le trimiți."]], ["Permisiuni", ["Locație: ca să salveze unde a avut loc fiecare activitate și, dacă o pornești, pentru Condus automat.", "Notificări: pentru alerta de oprire și avertismentul de pauză.", "Fișiere: ca să salveze rapoarte și backupuri pe telefon."]], ["Ștergerea datelor", ["Setări → Șterge toate datele șterge tot din aplicație. Și dezinstalarea aplicației le șterge. Fișierele de backup și rapoartele salvate rămân pe telefon până le ștergi tu."]], ["Activare", ["Când introduci un cod de activare, aplicația trimite serverului nostru de activare codul, un identificator al acestui telefon și modelul telefonului. Serverul le păstrează ca să știe câte telefoane folosesc fiecare cod. Din când în când aplicația verifică la server dacă codul mai este valabil."]], ["Copii", ["Aplicația este pentru șoferi profesioniști adulți și nu se adresează copiilor."]], ["Modificări", ["Dacă politica se schimbă, noua variantă apare în aplicație cu o dată nouă."]]], "terms": [["Folosirea aplicației", ["Truck Log te ajută să ții propria evidență a timpului de lucru. Tu răspunzi de corectitudinea datelor introduse și de verificarea lor."]], ["Nu este o evidență oficială", ["Ghidul timpului de condus, totalurile și rapoartele sunt doar informative. Nu înlocuiesc tahograful, evidența angajatorului sau vreo obligație legală. Urmează întotdeauna tahograful oficial și regulile care ți se aplică."]], ["Condus automat", ["Condusul automat depinde de GPS-ul telefonului. Poate întârzia sau rata schimbări, de exemplu în tuneluri, cu semnal slab sau când telefonul închide aplicația ca să economisească bateria. Verifică registrul și corectează-l când e nevoie."]], ["Datele tale", ["Datele rămân pe telefonul tău. Tu răspunzi de păstrarea backupurilor. Nu putem recupera date pierdute."]], ["Fără garanție", ["Aplicația este oferită „așa cum este”, fără nicio garanție. În limitele permise de lege, dezvoltatorul nu răspunde pentru pierderi, amenzi sau daune rezultate din folosirea aplicației."]], ["Cumpărare și rambursare", ["Dacă ai cumpărat aplicația din Google Play, se aplică regulile de rambursare Google Play."]], ["Modificări", ["Acești termeni pot fi actualizați odată cu versiunile noi ale aplicației."]]]}};
+Object.assign(L.en,{"lvEntries": "All entries"});
+Object.assign(L.ro,{"lvEntries": "Toate înregistrările"});
+Object.assign(L.de,{"lvEntries": "Alle Einträge"});
+Object.assign(L.fr,{"lvEntries": "Toutes les entrées"});
+Object.assign(L.nl,{"lvEntries": "Alle invoer"});
+Object.assign(L.en,{"a.Border": "Border crossing", "border": "Border crossing", "country": "Country", "countryQ": "Country you are entering", "countryPh": "e.g. DE", "msgBorder": "Enter the code of the country you are entering. The odometer km is optional.", "errCountry": "Enter the country.", "litres": "Litres", "litresPh": "e.g. 420", "msgFuel": "Enter the litres and the odometer km so the app can calculate consumption. Both are optional.", "errLitres": "Enter the litres as a number, e.g. 420 or 420,5.", "fuelTitle": "Fuel consumption", "fuelLitres": "Litres refuelled", "fuelAvg": "Average", "fuelNone": "No refuelling with litres and km in this period. Enter them when you tap Fuel.", "fuelNote": "Consumption is calculated from one fill to the next, so fill the tank completely each time.", "kmWarnLower": "This is lower than the last odometer reading ({km} km). Check it, then tap Save again to keep it.", "kmWarnJump": "That is {d} km more than the last reading ({km} km). Check it, then tap Save again to keep it.", "kmWarnDay": "{d} km in one day looks too much. Check it, then tap Save again to keep it.", "alertTitle": "Check this", "alNoDay": "Activities since {h} without “Start day”.", "alNoDayBtn": "Start day at {h}", "alLongDay": "The day has been open for {h}. Did you forget “End day”?", "alLongDayT": "Day still open", "alLongTrip": "Trip {n} has been open for {h}. Did you forget “End trip”?", "limFort": "Driving in two weeks", "limExt": "10-hour driving days this week: {n} of 2", "limRestLast": "Last daily rest: {t}", "restRegular": "regular", "restReduced": "reduced", "limWeekly": "Weekly rest must start by {d}", "limWeeklyOver": "Weekly rest overdue since {d}", "addTrip": "Add trip", "tStartL": "Start (date and time)", "tEndL": "End (leave empty if still open)", "tSkmL": "Start km", "tEkmL": "End km", "errTripStart": "Choose the start date and time.", "errTripEnd": "The end must be after the start.", "errTripKm": "End km cannot be lower than start km.", "errTripOpen": "Only one trip can be open. Close trip {n} first or give this one an end.", "tripDeleted": "Trip {n} deleted", "tripDelNote": "Your activities are kept. Tap Delete again to confirm."});
+Object.assign(L.ro,{"a.Border": "Trecere frontieră", "border": "Trecere frontieră", "country": "Țara", "countryQ": "Țara în care intri", "countryPh": "ex. DE", "msgBorder": "Scrie codul țării în care intri. Kilometrajul este opțional.", "errCountry": "Scrie țara.", "litres": "Litri", "litresPh": "ex. 420", "msgFuel": "Scrie litrii și kilometrajul, ca aplicația să calculeze consumul. Ambele sunt opționale.", "errLitres": "Scrie litrii ca număr, de exemplu 420 sau 420,5.", "fuelTitle": "Consum de motorină", "fuelLitres": "Litri alimentați", "fuelAvg": "Medie", "fuelNone": "Nicio alimentare cu litri și km în această perioadă. Scrie-i când apeși Alimentare.", "fuelNote": "Consumul se calculează de la o alimentare la următoarea, așa că fă plinul complet de fiecare dată.", "kmWarnLower": "Este mai puțin decât ultimul kilometraj ({km} km). Verifică, apoi apasă din nou Salvează ca să-l păstrezi.", "kmWarnJump": "Sunt cu {d} km mai mult decât ultimul kilometraj ({km} km). Verifică, apoi apasă din nou Salvează ca să-l păstrezi.", "kmWarnDay": "{d} km într-o zi pare prea mult. Verifică, apoi apasă din nou Salvează ca să-l păstrezi.", "alertTitle": "Verifică", "alNoDay": "Activități de la {h} fără „Început zi”.", "alNoDayBtn": "Început zi de la {h}", "alLongDay": "Ziua e deschisă de {h}. Ai uitat „Sfârșit zi”?", "alLongDayT": "Ziua e încă deschisă", "alLongTrip": "Cursa {n} e deschisă de {h}. Ai uitat „Final cursă”?", "limFort": "Condus în două săptămâni", "limExt": "Zile cu 10 ore de condus săptămâna aceasta: {n} din 2", "limRestLast": "Ultima odihnă zilnică: {t}", "restRegular": "normală", "restReduced": "redusă", "limWeekly": "Odihna săptămânală trebuie să înceapă până la {d}", "limWeeklyOver": "Odihna săptămânală trebuia începută din {d}", "addTrip": "Adaugă cursă", "tStartL": "Start (data și ora)", "tEndL": "Final (lasă gol dacă e încă deschisă)", "tSkmL": "Km la start", "tEkmL": "Km la final", "errTripStart": "Alege data și ora de start.", "errTripEnd": "Finalul trebuie să fie după start.", "errTripKm": "Km de final nu pot fi mai mici decât km de start.", "errTripOpen": "Doar o cursă poate fi deschisă. Închide întâi cursa {n} sau pune un final acesteia.", "tripDeleted": "Cursa {n} a fost ștearsă", "tripDelNote": "Activitățile rămân. Apasă din nou Șterge pentru confirmare."});
+Object.assign(L.de,{"a.Border": "Grenzübertritt", "border": "Grenzübertritt", "country": "Land", "countryQ": "Land, in das du einreist", "countryPh": "z. B. DE", "msgBorder": "Gib das Länderkürzel des Landes ein, in das du einreist. Der Kilometerstand ist optional.", "errCountry": "Gib das Land ein.", "litres": "Liter", "litresPh": "z. B. 420", "msgFuel": "Gib Liter und Kilometerstand ein, damit die App den Verbrauch berechnet. Beides ist optional.", "errLitres": "Gib die Liter als Zahl ein, z. B. 420 oder 420,5.", "fuelTitle": "Kraftstoffverbrauch", "fuelLitres": "Getankte Liter", "fuelAvg": "Durchschnitt", "fuelNone": "Kein Tankvorgang mit Litern und km in diesem Zeitraum. Gib sie beim Tippen auf Tanken ein.", "fuelNote": "Der Verbrauch wird von einem Tankvorgang zum nächsten berechnet, also jedes Mal volltanken.", "kmWarnLower": "Das ist weniger als der letzte Kilometerstand ({km} km). Prüfe es und tippe erneut auf Speichern, um es zu behalten.", "kmWarnJump": "Das sind {d} km mehr als der letzte Stand ({km} km). Prüfe es und tippe erneut auf Speichern, um es zu behalten.", "kmWarnDay": "{d} km an einem Tag scheint zu viel. Prüfe es und tippe erneut auf Speichern, um es zu behalten.", "alertTitle": "Bitte prüfen", "alNoDay": "Tätigkeiten seit {h} ohne „Tagesbeginn“.", "alNoDayBtn": "Tagesbeginn um {h}", "alLongDay": "Der Tag ist seit {h} offen. „Tagesende“ vergessen?", "alLongDayT": "Tag noch offen", "alLongTrip": "Tour {n} ist seit {h} offen. „Tour beenden“ vergessen?", "limFort": "Lenkzeit in zwei Wochen", "limExt": "Tage mit 10 Std. Lenkzeit diese Woche: {n} von 2", "limRestLast": "Letzte Tagesruhezeit: {t}", "restRegular": "regulär", "restReduced": "reduziert", "limWeekly": "Wöchentliche Ruhezeit muss beginnen bis {d}", "limWeeklyOver": "Wöchentliche Ruhezeit überfällig seit {d}", "addTrip": "Tour hinzufügen", "tStartL": "Beginn (Datum und Uhrzeit)", "tEndL": "Ende (leer lassen, wenn noch offen)", "tSkmL": "Start-km", "tEkmL": "End-km", "errTripStart": "Wähle Datum und Uhrzeit des Beginns.", "errTripEnd": "Das Ende muss nach dem Beginn liegen.", "errTripKm": "End-km dürfen nicht kleiner als Start-km sein.", "errTripOpen": "Nur eine Tour kann offen sein. Schließe zuerst Tour {n} oder gib dieser ein Ende.", "tripDeleted": "Tour {n} gelöscht", "tripDelNote": "Deine Tätigkeiten bleiben erhalten. Zum Bestätigen erneut auf Löschen tippen."});
+Object.assign(L.fr,{"a.Border": "Passage de frontière", "border": "Passage de frontière", "country": "Pays", "countryQ": "Pays dans lequel vous entrez", "countryPh": "ex. DE", "msgBorder": "Saisissez le code du pays dans lequel vous entrez. Le kilométrage est facultatif.", "errCountry": "Saisissez le pays.", "litres": "Litres", "litresPh": "ex. 420", "msgFuel": "Saisissez les litres et le kilométrage pour que l’appli calcule la consommation. Les deux sont facultatifs.", "errLitres": "Saisissez les litres en chiffres, ex. 420 ou 420,5.", "fuelTitle": "Consommation de carburant", "fuelLitres": "Litres ravitaillés", "fuelAvg": "Moyenne", "fuelNone": "Aucun plein avec litres et km sur cette période. Saisissez-les en appuyant sur Carburant.", "fuelNote": "La consommation est calculée d’un plein au suivant : faites le plein complet à chaque fois.", "kmWarnLower": "C’est moins que le dernier kilométrage ({km} km). Vérifiez, puis appuyez à nouveau sur Enregistrer pour le garder.", "kmWarnJump": "C’est {d} km de plus que le dernier relevé ({km} km). Vérifiez, puis appuyez à nouveau sur Enregistrer pour le garder.", "kmWarnDay": "{d} km en une journée, cela semble trop. Vérifiez, puis appuyez à nouveau sur Enregistrer pour le garder.", "alertTitle": "À vérifier", "alNoDay": "Activités depuis {h} sans « Début de journée ».", "alNoDayBtn": "Début de journée à {h}", "alLongDay": "La journée est ouverte depuis {h}. Oublié « Fin de journée » ?", "alLongDayT": "Journée encore ouverte", "alLongTrip": "La tournée {n} est ouverte depuis {h}. Oublié « Fin de tournée » ?", "limFort": "Conduite sur deux semaines", "limExt": "Journées de 10 h de conduite cette semaine : {n} sur 2", "limRestLast": "Dernier repos journalier : {t}", "restRegular": "normal", "restReduced": "réduit", "limWeekly": "Le repos hebdomadaire doit commencer avant {d}", "limWeeklyOver": "Repos hebdomadaire en retard depuis {d}", "addTrip": "Ajouter une tournée", "tStartL": "Début (date et heure)", "tEndL": "Fin (laisser vide si encore ouverte)", "tSkmL": "Km au début", "tEkmL": "Km à la fin", "errTripStart": "Choisissez la date et l’heure de début.", "errTripEnd": "La fin doit être après le début.", "errTripKm": "Les km de fin ne peuvent pas être inférieurs aux km de début.", "errTripOpen": "Une seule tournée peut être ouverte. Clôturez d’abord la tournée {n} ou donnez une fin à celle-ci.", "tripDeleted": "Tournée {n} supprimée", "tripDelNote": "Vos activités sont conservées. Appuyez à nouveau sur Supprimer pour confirmer."});
+Object.assign(L.nl,{"a.Border": "Grensovergang", "border": "Grensovergang", "country": "Land", "countryQ": "Land waar je binnenrijdt", "countryPh": "bijv. DE", "msgBorder": "Vul de landcode in van het land waar je binnenrijdt. De kilometerstand is optioneel.", "errCountry": "Vul het land in.", "litres": "Liter", "litresPh": "bijv. 420", "msgFuel": "Vul liters en kilometerstand in zodat de app het verbruik berekent. Beide zijn optioneel.", "errLitres": "Vul de liters als getal in, bijv. 420 of 420,5.", "fuelTitle": "Brandstofverbruik", "fuelLitres": "Getankte liters", "fuelAvg": "Gemiddeld", "fuelNone": "Geen tankbeurt met liters en km in deze periode. Vul ze in bij Tanken.", "fuelNote": "Het verbruik wordt berekend van tankbeurt tot tankbeurt, dus tank telkens helemaal vol.", "kmWarnLower": "Dit is lager dan de vorige kilometerstand ({km} km). Controleer het en tik nogmaals op Opslaan om het te houden.", "kmWarnJump": "Dat is {d} km meer dan de vorige stand ({km} km). Controleer het en tik nogmaals op Opslaan om het te houden.", "kmWarnDay": "{d} km op één dag lijkt te veel. Controleer het en tik nogmaals op Opslaan om het te houden.", "alertTitle": "Controleer dit", "alNoDay": "Activiteiten sinds {h} zonder „Dag starten”.", "alNoDayBtn": "Dag starten om {h}", "alLongDay": "De dag staat al {h} open. „Einde dag” vergeten?", "alLongDayT": "Dag nog open", "alLongTrip": "Rit {n} staat al {h} open. „Rit beëindigen” vergeten?", "limFort": "Rijtijd in twee weken", "limExt": "Dagen met 10 uur rijtijd deze week: {n} van 2", "limRestLast": "Laatste dagelijkse rust: {t}", "restRegular": "normaal", "restReduced": "verkort", "limWeekly": "Wekelijkse rust moet beginnen vóór {d}", "limWeeklyOver": "Wekelijkse rust te laat sinds {d}", "addTrip": "Rit toevoegen", "tStartL": "Start (datum en tijd)", "tEndL": "Einde (leeg laten als nog open)", "tSkmL": "Km bij start", "tEkmL": "Km bij einde", "errTripStart": "Kies de startdatum en -tijd.", "errTripEnd": "Het einde moet na de start liggen.", "errTripKm": "Eind-km mag niet lager zijn dan start-km.", "errTripOpen": "Er kan maar één rit open zijn. Sluit eerst rit {n} of geef deze een einde.", "tripDeleted": "Rit {n} verwijderd", "tripDelNote": "Je activiteiten blijven bewaard. Tik nogmaals op Verwijderen om te bevestigen."});
+Object.assign(L.en,{"autoBg": "It keeps working when you close the app from the recent apps list. If the phone still stops it, set Battery to “Unrestricted” for Truck Log in the phone settings."});
+Object.assign(L.ro,{"autoBg": "Funcționează și după ce închizi aplicația din lista aplicațiilor recente. Dacă telefonul o oprește totuși, pune Bateria pe „Fără restricții” pentru Truck Log în setările telefonului."});
+Object.assign(L.de,{"autoBg": "Es läuft weiter, auch wenn du die App aus der Liste der letzten Apps schließt. Stoppt das Handy sie trotzdem, stelle den Akku für Truck Log in den Handy-Einstellungen auf „Nicht eingeschränkt“."});
+Object.assign(L.fr,{"autoBg": "Cela continue de fonctionner quand vous fermez l’appli depuis la liste des applis récentes. Si le téléphone l’arrête quand même, réglez la Batterie sur « Non restreinte » pour Truck Log dans les réglages du téléphone."});
+Object.assign(L.nl,{"autoBg": "Het blijft werken als je de app sluit via de lijst met recente apps. Stopt de telefoon het toch, zet dan de Batterij op „Onbeperkt” voor Truck Log in de telefooninstellingen."});
+Object.assign(L.en,{"licNoCode": "Don’t have a code yet?", "licContact": "Contact", "licTamper": "This copy of Truck Log has been modified and cannot be used. Install the original app.", "licTitle": "Activate Truck Log", "licText": "Enter the activation code you received from your company.", "licCode": "Activation code", "licBtn": "Activate", "licNet": "Internet is needed once to activate.", "licDevice": "Phone code: {d}", "e_invalid": "This code does not exist. Check it and try again.", "e_no_seats": "This code has no free places left. Ask your company.", "e_inactive": "This code is no longer active. Ask your company.", "e_expired": "The validity of this code has ended.", "e_trial_used": "The trial on this phone has already been used. Enter your company code.", "e_offline": "No internet connection. Connect and try again.", "e_server": "The activation server did not answer. Try again in a few minutes.", "e_revoked": "Access for this phone was stopped. Enter a new code.", "licTrialEnded": "Your 7-day trial has ended. Enter your company code to continue. Your data is kept.", "licRevoked": "Access for this phone was stopped. Enter a new code. Your data is kept.", "licNeedCheck": "Connect to the internet once so the app can check your activation. Your data is kept.", "licRetry": "Check again", "licPanel": "Activation", "licType": "Type", "licTypeTrial": "7-day trial", "licTypeCo": "Company licence", "licUntil": "Valid until", "licNoEnd": "No end date", "licDev": "Phone code", "licChange": "Enter another code", "trialLeft": "Trial: {d} left. Enter your company code to keep using the app.", "trialBtn": "Enter company code", "licOk": "App activated", "licBackup": "Save a backup of your data", "coLocked": "The company name comes from the activation code."});
+Object.assign(L.ro,{"licNoCode": "Nu ai încă un cod?", "licContact": "Contact", "licTamper": "Această copie Truck Log a fost modificată și nu poate fi folosită. Instalează aplicația originală.", "licTitle": "Activează Truck Log", "licText": "Scrie codul de activare primit de la firma ta.", "licCode": "Cod de activare", "licBtn": "Activează", "licNet": "Pentru activare e nevoie de internet o singură dată.", "licDevice": "Codul telefonului: {d}", "e_invalid": "Codul nu există. Verifică-l și încearcă din nou.", "e_no_seats": "Codul nu mai are locuri libere. Întreabă firma ta.", "e_inactive": "Codul nu mai este activ. Întreabă firma ta.", "e_expired": "Valabilitatea codului s-a încheiat.", "e_trial_used": "Perioada de probă a fost deja folosită pe acest telefon. Scrie codul firmei tale.", "e_offline": "Nu e conexiune la internet. Conectează-te și încearcă din nou.", "e_server": "Serverul de activare nu a răspuns. Încearcă din nou peste câteva minute.", "e_revoked": "Accesul pentru acest telefon a fost oprit. Scrie un cod nou.", "licTrialEnded": "Perioada de probă de 7 zile s-a încheiat. Scrie codul firmei ca să continui. Datele tale sunt păstrate.", "licRevoked": "Accesul pentru acest telefon a fost oprit. Scrie un cod nou. Datele tale sunt păstrate.", "licNeedCheck": "Conectează-te o dată la internet, ca aplicația să verifice activarea. Datele tale sunt păstrate.", "licRetry": "Verifică din nou", "licPanel": "Activare", "licType": "Tip", "licTypeTrial": "Probă 7 zile", "licTypeCo": "Licență firmă", "licUntil": "Valabil până la", "licNoEnd": "Fără termen", "licDev": "Codul telefonului", "licChange": "Introdu alt cod", "trialLeft": "Probă: mai ai {d}. Scrie codul firmei ca să folosești aplicația mai departe.", "trialBtn": "Scrie codul firmei", "licOk": "Aplicația a fost activată", "licBackup": "Salvează un backup al datelor", "coLocked": "Numele firmei vine din codul de activare."});
+Object.assign(L.de,{"licNoCode": "Noch keinen Code?", "licContact": "Kontakt", "licTamper": "Diese Kopie von Truck Log wurde verändert und kann nicht verwendet werden. Installiere die Original-App.", "licTitle": "Truck Log aktivieren", "licText": "Gib den Aktivierungscode ein, den du von deiner Firma bekommen hast.", "licCode": "Aktivierungscode", "licBtn": "Aktivieren", "licNet": "Zum Aktivieren wird einmal Internet benötigt.", "licDevice": "Gerätecode: {d}", "e_invalid": "Diesen Code gibt es nicht. Prüfe ihn und versuche es erneut.", "e_no_seats": "Für diesen Code sind keine Plätze mehr frei. Frag deine Firma.", "e_inactive": "Dieser Code ist nicht mehr aktiv. Frag deine Firma.", "e_expired": "Die Gültigkeit dieses Codes ist abgelaufen.", "e_trial_used": "Die Testphase wurde auf diesem Handy schon genutzt. Gib den Code deiner Firma ein.", "e_offline": "Keine Internetverbindung. Verbinde dich und versuche es erneut.", "e_server": "Der Aktivierungsserver antwortet nicht. Versuche es in ein paar Minuten erneut.", "e_revoked": "Der Zugang für dieses Handy wurde beendet. Gib einen neuen Code ein.", "licTrialEnded": "Deine 7-tägige Testphase ist abgelaufen. Gib den Code deiner Firma ein, um weiterzumachen. Deine Daten bleiben erhalten.", "licRevoked": "Der Zugang für dieses Handy wurde beendet. Gib einen neuen Code ein. Deine Daten bleiben erhalten.", "licNeedCheck": "Verbinde dich einmal mit dem Internet, damit die App deine Aktivierung prüfen kann. Deine Daten bleiben erhalten.", "licRetry": "Erneut prüfen", "licPanel": "Aktivierung", "licType": "Art", "licTypeTrial": "7-Tage-Test", "licTypeCo": "Firmenlizenz", "licUntil": "Gültig bis", "licNoEnd": "Ohne Ende", "licDev": "Gerätecode", "licChange": "Anderen Code eingeben", "trialLeft": "Test: noch {d}. Gib den Code deiner Firma ein, um die App weiter zu nutzen.", "trialBtn": "Firmencode eingeben", "licOk": "App aktiviert", "licBackup": "Backup deiner Daten speichern", "coLocked": "Der Firmenname kommt aus dem Aktivierungscode."});
+Object.assign(L.fr,{"licNoCode": "Pas encore de code ?", "licContact": "Contact", "licTamper": "Cette copie de Truck Log a été modifiée et ne peut pas être utilisée. Installez l'application d'origine.", "licTitle": "Activer Truck Log", "licText": "Saisissez le code d’activation reçu de votre entreprise.", "licCode": "Code d’activation", "licBtn": "Activer", "licNet": "Internet est nécessaire une seule fois pour l’activation.", "licDevice": "Code du téléphone : {d}", "e_invalid": "Ce code n’existe pas. Vérifiez-le et réessayez.", "e_no_seats": "Ce code n’a plus de places libres. Demandez à votre entreprise.", "e_inactive": "Ce code n’est plus actif. Demandez à votre entreprise.", "e_expired": "La validité de ce code a expiré.", "e_trial_used": "L’essai a déjà été utilisé sur ce téléphone. Saisissez le code de votre entreprise.", "e_offline": "Pas de connexion internet. Connectez-vous et réessayez.", "e_server": "Le serveur d’activation ne répond pas. Réessayez dans quelques minutes.", "e_revoked": "L’accès pour ce téléphone a été arrêté. Saisissez un nouveau code.", "licTrialEnded": "Votre essai de 7 jours est terminé. Saisissez le code de votre entreprise pour continuer. Vos données sont conservées.", "licRevoked": "L’accès pour ce téléphone a été arrêté. Saisissez un nouveau code. Vos données sont conservées.", "licNeedCheck": "Connectez-vous une fois à internet pour que l’appli vérifie votre activation. Vos données sont conservées.", "licRetry": "Vérifier à nouveau", "licPanel": "Activation", "licType": "Type", "licTypeTrial": "Essai 7 jours", "licTypeCo": "Licence entreprise", "licUntil": "Valable jusqu’au", "licNoEnd": "Sans fin", "licDev": "Code du téléphone", "licChange": "Saisir un autre code", "trialLeft": "Essai : encore {d}. Saisissez le code de votre entreprise pour continuer à utiliser l’appli.", "trialBtn": "Saisir le code entreprise", "licOk": "Appli activée", "licBackup": "Sauvegarder vos données", "coLocked": "Le nom de l’entreprise vient du code d’activation."});
+Object.assign(L.nl,{"licNoCode": "Nog geen code?", "licContact": "Contact", "licTamper": "Deze kopie van Truck Log is aangepast en kan niet worden gebruikt. Installeer de originele app.", "licTitle": "Truck Log activeren", "licText": "Vul de activeringscode in die je van je bedrijf hebt gekregen.", "licCode": "Activeringscode", "licBtn": "Activeren", "licNet": "Voor activering is één keer internet nodig.", "licDevice": "Telefooncode: {d}", "e_invalid": "Deze code bestaat niet. Controleer hem en probeer opnieuw.", "e_no_seats": "Deze code heeft geen vrije plaatsen meer. Vraag het je bedrijf.", "e_inactive": "Deze code is niet meer actief. Vraag het je bedrijf.", "e_expired": "De geldigheid van deze code is verlopen.", "e_trial_used": "De proefperiode is op deze telefoon al gebruikt. Vul de code van je bedrijf in.", "e_offline": "Geen internetverbinding. Maak verbinding en probeer opnieuw.", "e_server": "De activeringsserver reageert niet. Probeer het over een paar minuten opnieuw.", "e_revoked": "De toegang voor deze telefoon is gestopt. Vul een nieuwe code in.", "licTrialEnded": "Je proefperiode van 7 dagen is afgelopen. Vul de code van je bedrijf in om verder te gaan. Je gegevens blijven bewaard.", "licRevoked": "De toegang voor deze telefoon is gestopt. Vul een nieuwe code in. Je gegevens blijven bewaard.", "licNeedCheck": "Maak één keer verbinding met internet zodat de app je activering kan controleren. Je gegevens blijven bewaard.", "licRetry": "Opnieuw controleren", "licPanel": "Activering", "licType": "Soort", "licTypeTrial": "Proef 7 dagen", "licTypeCo": "Bedrijfslicentie", "licUntil": "Geldig tot", "licNoEnd": "Geen einddatum", "licDev": "Telefooncode", "licChange": "Andere code invoeren", "trialLeft": "Proef: nog {d}. Vul de code van je bedrijf in om de app te blijven gebruiken.", "trialBtn": "Bedrijfscode invoeren", "licOk": "App geactiveerd", "licBackup": "Back-up van je gegevens maken", "coLocked": "De bedrijfsnaam komt uit de activeringscode."});
+Object.assign(L.en,{"daysN": "{n} days"});
+Object.assign(L.ro,{"daysN": "{n} zile"});
+Object.assign(L.de,{"daysN": "{n} Tage"});
+Object.assign(L.fr,{"daysN": "{n} jours"});
+Object.assign(L.nl,{"daysN": "{n} dagen"});
+Object.assign(L.en,{"syncTitle": "Your log is shared with your company", "syncText1": "This app is activated with the code of {c}. From now on your log is sent to {c} automatically: activities, times, locations, kilometres, trips and your name.", "syncText2": "Only your company can see it. Everything also stays on your phone and the app works without internet as before. Details are in Settings → Privacy policy.", "syncOk": "I understand", "syncRow": "Shared with company", "syncNever": "Not sent yet", "syncAt": "Last sent {d}", "syncWait": "Waiting for internet"});
+Object.assign(L.ro,{"syncTitle": "Jurnalul tău se trimite firmei", "syncText1": "Aplicația e activată cu codul firmei {c}. De acum, jurnalul tău se trimite automat către {c}: activitățile, orele, locațiile, kilometrii, cursele și numele tău.", "syncText2": "Doar firma ta îl poate vedea. Totul rămâne și pe telefonul tău, iar aplicația merge fără internet ca înainte. Detalii găsești în Setări → Politica de confidențialitate.", "syncOk": "Am înțeles", "syncRow": "Trimis către firmă", "syncNever": "Încă nu s-a trimis", "syncAt": "Ultima trimitere {d}", "syncWait": "Se așteaptă internetul"});
+Object.assign(L.de,{"syncTitle": "Dein Fahrtenbuch wird mit deiner Firma geteilt", "syncText1": "Diese App ist mit dem Code von {c} aktiviert. Ab jetzt wird dein Fahrtenbuch automatisch an {c} gesendet: Tätigkeiten, Zeiten, Standorte, Kilometer, Touren und dein Name.", "syncText2": "Nur deine Firma kann es sehen. Alles bleibt auch auf deinem Handy und die App funktioniert wie bisher ohne Internet. Details stehen unter Einstellungen → Datenschutz.", "syncOk": "Verstanden", "syncRow": "Mit Firma geteilt", "syncNever": "Noch nicht gesendet", "syncAt": "Zuletzt gesendet {d}", "syncWait": "Warten auf Internet"});
+Object.assign(L.fr,{"syncTitle": "Votre journal est partagé avec votre entreprise", "syncText1": "Cette application est activée avec le code de {c}. Désormais, votre journal est envoyé automatiquement à {c} : activités, horaires, lieux, kilomètres, trajets et votre nom.", "syncText2": "Seule votre entreprise peut le voir. Tout reste aussi sur votre téléphone et l'application fonctionne sans internet comme avant. Détails dans Réglages → Politique de confidentialité.", "syncOk": "J'ai compris", "syncRow": "Partagé avec l'entreprise", "syncNever": "Pas encore envoyé", "syncAt": "Dernier envoi {d}", "syncWait": "En attente d'internet"});
+Object.assign(L.nl,{"syncTitle": "Je logboek wordt gedeeld met je bedrijf", "syncText1": "Deze app is geactiveerd met de code van {c}. Vanaf nu wordt je logboek automatisch naar {c} gestuurd: activiteiten, tijden, locaties, kilometers, ritten en je naam.", "syncText2": "Alleen je bedrijf kan het zien. Alles blijft ook op je telefoon staan en de app werkt zonder internet zoals voorheen. Details staan bij Instellingen → Privacybeleid.", "syncOk": "Begrepen", "syncRow": "Gedeeld met bedrijf", "syncNever": "Nog niet verzonden", "syncAt": "Laatst verzonden {d}", "syncWait": "Wachten op internet"});
+let lang='en';
+function t(k,v){let s=(L[lang]&&L[lang][k]!=null)?L[lang][k]:(L.en[k]!=null?L.en[k]:k);if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s}
+const tA=type=>t('a.'+type);
+const loc=()=>LOCALE[lang]||'en-GB';
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{el.placeholder=t(el.dataset.i18nPh)});
+}
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const fmtD=d=>`${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
+const fmtH=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtT=d=>`${fmtD(d)} ${fmtH(d)}`;
+const fmtDur=ms=>{if(ms==null||ms<0)return'';const m=Math.round(ms/60000);return`${Math.floor(m/60)}h ${pad(m%60)}m`};
+const fmtHM=ms=>{const m=Math.round((ms||0)/60000);return`${Math.floor(m/60)}:${pad(m%60)}`};
+const fmtL=n=>String(Math.round(n*10)/10).replace('.',',');
+const fmtKm=n=>n==null||n===''?'':String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+const parseKm=v=>{const s=String(v??'').replace(/[^\d]/g,'');return s?parseInt(s,10):null};
+const isoDay=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dayFromIso=k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const longDay=d=>d.toLocaleDateString(loc(),{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const slug=s=>String(s).toLowerCase().replace(/[^a-z]+/g,'-');
+const noDia=s=>String(s??'').replace(/[ăâ]/g,'a').replace(/[ĂÂ]/g,'A').replace(/î/g,'i').replace(/Î/g,'I').replace(/[șş]/g,'s').replace(/[ȘŞ]/g,'S').replace(/[țţ]/g,'t').replace(/[ȚŢ]/g,'T').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[–—]/g,'-').replace(/[“”„]/g,'"');
+const RO2EN={'Condus':'Driving','Încărcare':'Loading','Descărcare':'Unload','Cuplare':'Coupling','Înregistrare':'Register','Așteptare':'Wait','Pauză':'Break','Odihnă':'Sleep','Alimentare':'Fuel','Spălare camion':'Truckwash','Întreținere':'Maintenance','Defecțiune':'Break down'};
+const fixType=e=>RO2EN[e.type]?{...e,type:RO2EN[e.type]}:e;
+let entries=[]; let settings={company:DEFAULT_CO,driver:'',trip:'',truck:'',lang:'',theme:'auto',auto:false,keepOn:false,autoOk:false}; let coords=null;
+const MARK=new Set(['Border']);
+const isInstant=e=>DAYT.includes(e.type)||MARK.has(e.type);
+const sortedAll=()=>[...entries].sort((a,b)=>a.ts-b.ts);
+const sorted=()=>sortedAll().filter(e=>!MARK.has(e.type));
+function saveEntries(){syncSoon();store(K_ENT,entries);const c=sorted().at(-1);store('truck-log-current',c?{type:c.type,ts:c.ts}:{})}
+let trips=[];
+function saveTrips(){syncSoon();store(K_TRIPS,trips)}
+const openTrip=()=>trips.filter(x=>x.end==null).sort((a,b)=>b.start-a.start)[0]||null;
+function saveSettings(){syncSoon(30000);store(K_SET,settings)}
+function lastOf(pred){const s=sorted();for(let i=s.length-1;i>=0;i--)if(pred(s[i]))return s[i];return null}
+function openDay(){const e=lastOf(x=>DAYT.includes(x.type));return e&&e.type==='Start day'?e:null}
+function currentTrailer(){let t=null;for(const e of sorted()){if(e.type==='Coupling')t=e.trailer||null;else if(e.type==='Uncoupling')t=null}return t}
+function lastTrailer(){const e=lastOf(x=>isTrailerType(x.type)&&x.trailer);return e?e.trailer:''}
+function lastKm(beforeTs){const s=sortedAll();for(let i=s.length-1;i>=0;i--){const e=s[i];if(beforeTs!=null&&e.ts>=beforeTs)continue;if(e.km!=null&&(DAYT.includes(e.type)||e.type==='Fuel'||e.type==='Border'))return e.km}return null}
+const lastCountry=()=>{const s=sortedAll();for(let i=s.length-1;i>=0;i--)if(s[i].type==='Border'&&s[i].country)return s[i].country;return ''};
+/* ===== computation: per-entry end, per-day totals, km driven ===== */
+function splitByDay(start,end,cb){let t=start;while(t<end){const d=new Date(t);const next=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1).getTime();const stop=Math.min(end,next);cb(isoDay(d),stop-t);t=stop}}
+function compute(){
+  const s=sorted(), days={}, endOf={}, drivenBy={};
+  const D=k=>days[k]||(days[k]={km:0,startKm:null,endKm:null,acts:{},others:{},trips:new Set(),trailers:new Set(),open:false});
+  let lastStart=null;
+  for(let i=0;i<s.length;i++){
+    const e=s[i], next=s[i+1], end=next?next.ts:Date.now(); endOf[e.id]=next?next.ts:null;
+    const dk=isoDay(new Date(e.ts));
+    if(e.trip)D(dk).trips.add(e.trip);
+    if(e.trailer)D(dk).trailers.add(e.trailer);
+    if(e.type==='Start day'){lastStart=e;const d=D(dk);if(d.startKm==null)d.startKm=e.km??null;continue}
+    if(e.type==='End day'){
+      if(lastStart&&lastStart.km!=null&&e.km!=null){const km=Math.max(0,e.km-lastStart.km);const d=D(isoDay(new Date(lastStart.ts)));d.km+=km;d.endKm=e.km;drivenBy[e.id]=km}
+      lastStart=null;continue}
+    splitByDay(e.ts,end,(k,ms)=>{const d=D(k);d.acts[e.type]=(d.acts[e.type]||0)+ms;if(e.type==='Other'){const n=e.other||'Other';d.others[n]=(d.others[n]||0)+ms}});
+  }
+  if(lastStart)D(isoDay(new Date(lastStart.ts))).open=true;
+  return {days,endOf,drivenBy};
+}
+function inRangeKey(k){const f=$('from').value,t=$('to').value;return(!f||k>=f)&&(!t||k<=t)}
+function periodDays(C){return Object.keys(C.days).filter(inRangeKey).sort()}
+function actCols(C,keys){return ORDER.filter(a=>keys.some(k=>C.days[k].acts[a]))}
+function daySummaryText(d){
+  const parts=[];
+  if(d.km)parts.push(`${fmtKm(d.km)} km`);else if(d.open)parts.push(t('kmAfterEnd'));
+  const w=workMs(d.acts);if(w>=60000)parts.push(`${t('workTime')} ${fmtHM(w)}`);
+  ORDER.forEach(a=>{if(d.acts[a]>=60000)parts.push(`${tA(a)} ${fmtHM(d.acts[a])}`)});
+  return parts.join(' · ');
+}
+/* ===== driving time guide (EU 561/2006, simplified) ===== */
+const H=3600e3, LIM={cont:4.5*H,day:9*H,dayExt:10*H,week:56*H,fort:90*H};
+function limits(){
+  const s=sorted(), now=Date.now(), d=new Date();
+  const wk=new Date(d.getFullYear(),d.getMonth(),d.getDate()-((d.getDay()+6)%7)).getTime(), pwk=wk-7*24*H;
+  const ov=(a,b,x,y)=>Math.max(0,Math.min(b,y)-Math.max(a,x));
+  let cont=0,had15=false,day=0,week=0,prev=0,rest=0,lastDaily=null,lastWeeklyEnd=null;
+  const periods=[{start:s.length?s[0].ts:now,drive:0}];
+  const endRest=at=>{if(rest<=0)return;
+    if(rest>=45*60e3||(had15&&rest>=30*60e3)){cont=0;had15=false}else if(rest>=15*60e3)had15=true;
+    if(rest>=9*H){lastDaily=rest;day=0;periods.push({start:at,drive:0})}
+    if(rest>=24*H)lastWeeklyEnd=at;
+    rest=0};
+  for(let i=0;i<s.length;i++){const e=s[i],a=e.ts,b=s[i+1]?s[i+1].ts:now,ms=Math.max(0,b-a);
+    if(e.type==='Break'||e.type==='Sleep'||e.type==='End day'){rest+=ms;continue}
+    endRest(a);
+    if(e.type==='Driving'){cont+=ms;day+=ms;periods[periods.length-1].drive+=ms;week+=ov(a,b,wk,now);prev+=ov(a,b,pwk,wk)}}
+  endRest(now);
+  const cur=periods[periods.length-1];
+  const extUsed=periods.filter(x=>x!==cur&&x.start>=wk&&x.drive>9*H).length;
+  return {cont,day,week,fort:week+prev,extUsed,curExt:cur.drive>9*H,lastDaily,weeklyDue:lastWeeklyEnd!=null?lastWeeklyEnd+6*24*H:null};
+}
+function details(e,C){
+  if(DAYT.includes(e.type)){let t=e.km!=null?`${fmtKm(e.km)} km`:'';if(C.drivenBy[e.id]!=null)t+=` (+${fmtKm(C.drivenBy[e.id])} km)`;return t}
+  if(isTrailerType(e.type))return e.trailer?`${t('trailer')} ${e.trailer}`:'';
+  if(e.type==='Border')return [e.country?'→ '+e.country:'',e.km!=null?`${fmtKm(e.km)} km`:''].filter(Boolean).join(' · ');
+  if(e.type==='Fuel'&&(e.litres!=null||e.km!=null))return [e.litres!=null?`${fmtL(e.litres)} L`:'',e.km!=null?`${fmtKm(e.km)} km`:''].filter(Boolean).join(' · ');
+  if(e.order)return `${t('order')} ${e.order}`;
+  if(e.auto)return t('autoTag');
+  return '';
+}
+/* ===== exports ===== */
+function periodLabel(){const f=$('from').value,t=$('to').value;
+  const s=f?fmtD(dayFromIso(f)):'first entry', e=t?fmtD(dayFromIso(t)):'today';return `${s} – ${e}`}
+function periodFile(){const f=$('from').value,t=$('to').value;return(f||t)?`${f||'start'}_${t||'today'}`:'all'}
+/* ===== reports (always in English) ===== */
+const inPeriod=e=>inRangeKey(isoDay(new Date(e.ts)));
+const actName=e=>e.type==='Other'?`Other: ${e.other||''}`:e.type==='Border'?`Border crossing${e.country?' → '+e.country:''}`:e.type;
+const noteOf=e=>[e.note,e.auto?'Started automatically (GPS speed)':'',e.fromUnknown?'Corrected from Unknown':''].filter(Boolean).join(' · ');
+function baseInfo(list,extra){const u=k=>[...new Set(list.map(e=>e[k]).filter(Boolean))].join(', ');
+  return [['Company',co()],['Driver',u('driver')||settings.driver||''],['Truck',u('truck')||settings.truck||''],...extra,['Generated',fmtT(new Date())]]}
+function tripsInPeriod(){const f=$('from').value,t2=$('to').value;return allTrips().filter(tr=>{const sd=isoDay(new Date(tr.start)),ed=isoDay(new Date(tr.end||Date.now()));return(!t2||sd<=t2)&&(!f||ed>=f)})}
+const borderRows=list=>list.filter(e=>e.type==='Border').map(e=>[fmtD(new Date(e.ts)),fmtH(new Date(e.ts)),e.country||'',e.km??'',e.loc||'']);
+const fuelRows=()=>fuelPeriod().list.map(x=>[fmtD(new Date(x.e.ts)),fmtH(new Date(x.e.ts)),x.e.litres??'',x.e.km??'',x.dist??'',x.l100!=null?Math.round(x.l100*10)/10:'',x.e.loc||'']);
+function reportDays(){
+  const C=compute();const keys=periodDays(C);const cols=actCols(C,keys);
+  const hasOther=keys.some(k=>Object.keys(C.days[k].others).length);
+  const otherTxt=d=>Object.entries(d.others).map(([n,ms])=>`${n} ${fmtHM(ms)}`).join(', ');
+  const sumHead=['Date','Trip','Start km','End km','Km driven','Work time (excl. break & sleep)',...cols,...(hasOther?['Other activities (details)']:[])];
+  const tot={km:0,acts:{},work:0};
+  const sumRows=keys.map(k=>{const d=C.days[k];tot.km+=d.km;const w=workMs(d.acts);tot.work+=w;cols.forEach(a=>tot.acts[a]=(tot.acts[a]||0)+(d.acts[a]||0));
+    return [fmtD(dayFromIso(k)),[...d.trips].join(', '),d.startKm??'',d.endKm??'',d.km||'',w?fmtHM(w):'',...cols.map(a=>d.acts[a]?fmtHM(d.acts[a]):''),...(hasOther?[otherTxt(d)]:[])]});
+  const sumTotal=['TOTAL','','','',tot.km,fmtHM(tot.work),...cols.map(a=>fmtHM(tot.acts[a])),...(hasOther?['']:[])];
+  const list=sortedAll().filter(inPeriod);
+  const logHead=['Date','Start','End','Duration','Activity','Order','Trailer','Litres','Odometer km','Km driven','Truck','Trip','Driver','Location','Coordinates','Note'];
+  const logRows=list.map(e=>{const isDay=isInstant(e);const end=C.endOf[e.id];
+    return [fmtD(new Date(e.ts)),fmtH(new Date(e.ts)),isDay?'':(end?fmtH(new Date(end)):'ongoing'),isDay?'':fmtDur((end||Date.now())-e.ts),actName(e),e.order||'',e.trailer||'',e.litres??'',e.km??'',C.drivenBy[e.id]??'',e.truck||'',e.trip||'',e.driver||'',e.loc||'',e.lat!=null?`${e.lat}, ${e.lon}`:'',noteOf(e)]});
+  return {title:'Driver activity report - by days',file:`truck_log_days_${periodFile()}`,empty:!list.length,info:baseInfo(list,[['Period',periodLabel()]]),
+    tables:[{name:'Daily totals',head:sumHead,rows:[...sumRows,sumTotal],boldLast:true,boldCol:5,widths:[12,14,10,10,10,16]},
+            {name:'Border crossings',head:['Date','Time','Country','Odometer km','Location'],rows:borderRows(list),widths:[12,8,10,12,34]},
+            {name:'Fuel',head:['Date','Time','Litres','Odometer km','Km since last fill','l/100 km','Location'],rows:fuelRows(),widths:[12,8,9,12,16,10,30]},
+            {name:'Activity log',head:logHead,rows:logRows,small:true,widths:[11,7,7,9,16,12,12,8,11,10,11,10,18,30,20,28]}]};
+}
+function reportTotals(){
+  const C=compute();const keys=periodDays(C);const tot={};let km=0,days=0;
+  keys.forEach(k=>{const d=C.days[k];km+=d.km;let w=d.km>0||d.open||d.startKm!=null;ORDER.forEach(a=>{if(d.acts[a]){tot[a]=(tot[a]||0)+d.acts[a];w=true}});if(w)days++});
+  const acts=ORDER.filter(a=>tot[a]>=60000).sort((x,y)=>tot[y]-tot[x]);const sum=acts.reduce((s,a)=>s+tot[a],0)||1;
+  const list=sortedAll().filter(inPeriod);const tp=tripsInPeriod();const F=fuelPeriod();
+  const general=[['Days worked',days],['Km driven',km],['Work time (excl. break & sleep)',fmtHM(workMs(tot))],['Driving',fmtHM(tot['Driving']||0)],['Break + sleep',fmtHM((tot['Break']||0)+(tot['Sleep']||0))],['Trips',tp.length],['Border crossings',list.filter(e=>e.type==='Border').length],['Fuel (litres)',Math.round(F.litres*10)/10],['Average consumption (l/100 km)',F.avg!=null?Math.round(F.avg*10)/10:'']];
+  const actRows=acts.map(a=>[a,fmtHM(tot[a]),Math.round(tot[a]/sum*100)+'%']);if(acts.length)actRows.push(['TOTAL',fmtHM(acts.reduce((s,a)=>s+tot[a],0)),'100%']);
+  const tripRows=tp.slice().reverse().map(tr=>{const D=tripData(tr);return [tr.no,fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):'ongoing',fmtDur(D.b-D.a),fmtHM(workMs(D.acts)),fmtHM(D.acts['Driving']||0),D.km??'',[...new Set(D.orders.map(o=>o.e.order))].join(', ')]});
+  return {title:'Driver activity report - totals for the period',file:`truck_log_totals_${periodFile()}`,empty:!list.length,info:baseInfo(list,[['Period',periodLabel()]]),
+    tables:[{name:'General totals',head:['Total','Value'],rows:general,widths:[34,16]},
+            {name:'Time per activity',head:['Activity','Time (h:mm)','Share'],rows:actRows,boldLast:true,widths:[22,14,10]},
+            {name:'Trips',head:['Trip no.','Start','End','Duration','Work time','Driving','Km driven','Orders'],rows:tripRows,widths:[14,17,17,11,11,11,11,30]},
+            {name:'Fuel',head:['Date','Time','Litres','Odometer km','Km since last fill','l/100 km','Location'],rows:fuelRows(),widths:[12,8,9,12,16,10,30]},
+            {name:'Border crossings',head:['Date','Time','Country','Odometer km','Location'],rows:borderRows(list),widths:[12,8,10,12,34]}]};
+}
+function reportTrip(tr){
+  const D=tripData(tr);const list=D.rows.map(r=>r.e);
+  const acts=ORDER.filter(a=>D.acts[a]>=60000).sort((x,y)=>D.acts[y]-D.acts[x]);
+  const extra=[['Trip no.',tr.no],['Trip start',fmtT(new Date(D.a))],['Trip end',tr.end?fmtT(new Date(tr.end)):'ongoing'],['Trip duration',fmtDur(D.b-D.a)]];
+  if(tr.startKm!=null)extra.push(['Start km',tr.startKm]);if(tr.endKm!=null)extra.push(['End km',tr.endKm]);if(D.km!=null)extra.push(['Km driven',D.km]);
+  const totRows=acts.map(a=>[a==='Other'?'Other'+(Object.keys(D.others).length?` (${Object.entries(D.others).map(([n,ms])=>`${n} ${fmtHM(ms)}`).join(', ')})`:''):a,fmtHM(D.acts[a])]);
+  totRows.push(['Work time (excl. break & sleep)',fmtHM(workMs(D.acts))]);
+  const ordRows=D.orders.map(o=>[o.e.type,o.e.order,fmtD(new Date(o.from)),fmtH(new Date(o.from)),o.e.loc||'']);
+  const logRows=D.rows.map(r=>{const e=r.e,isDay=r.to==null;return [fmtD(new Date(r.from)),fmtH(new Date(r.from)),isDay?'':(r.ongoing?'ongoing':fmtH(new Date(r.to))),isDay?'':fmtDur(r.to-r.from),actName(e),e.order||'',e.trailer||'',e.km??'',e.loc||'',noteOf(e)]});
+  return {title:`Trip report - trip ${tr.no}`,file:`truck_log_trip_${String(tr.no).replace(/[^\w-]+/g,'_')}`,empty:!D.rows.length,info:baseInfo(list,extra),
+    tables:[{name:'Trip totals',head:['Activity','Time (h:mm)'],rows:totRows,boldLast:true,widths:[44,14]},
+            {name:'Orders',head:['Activity','Order no.','Date','Time','Location'],rows:ordRows,widths:[12,16,12,8,34]},
+            {name:'Border crossings',head:['Date','Time','Country','Odometer km','Location'],rows:borderRows(D.borders),widths:[12,8,10,12,34]},
+            {name:'Activity log',head:['Date','Start','End','Duration','Activity','Order','Trailer','Odometer km','Location','Note'],rows:logRows,small:true,widths:[11,7,8,9,18,12,12,11,30,28]}]};
+}
+function toXlsx(R){
+  const wb=XLSX.utils.book_new();
+  R.tables.filter(tb=>tb.rows.length).forEach(tb=>{const ws=XLSX.utils.aoa_to_sheet([[R.title],...R.info,[],tb.head,...tb.rows]);
+    ws['!cols']=tb.head.map((h,i)=>({wch:Math.max((tb.widths&&tb.widths[i])||12,i===0?16:0)}));XLSX.utils.book_append_sheet(wb,ws,tb.name.slice(0,31))});
+  return new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function toPdf(R){
+  const doc=new jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});const C=r=>r.map(x=>noDia(x));
+  doc.setFontSize(16);doc.text(noDia(co()?`${co()} - ${R.title}`:R.title),14,15);doc.setFontSize(10);
+  let y=21;const pairs=R.info.slice(1).map(([k,v])=>`${k}: ${v===''||v==null?'-':v}`);
+  for(let i=0;i<pairs.length;i+=4){doc.text(noDia(pairs.slice(i,i+4).join('      ')),14,y);y+=5}
+  y+=3;
+  R.tables.filter(tb=>tb.rows.length).forEach(tb=>{
+    if(y>180){doc.addPage();y=15}
+    doc.setFontSize(12);doc.text(tb.name,14,y);
+    doc.autoTable({startY:y+2,head:[C(tb.head)],body:tb.rows.map(C),styles:{fontSize:tb.small?7.5:8.5,cellPadding:tb.small?1.4:1.7},tableWidth:tb.head.length<=3?110:'auto',
+      headStyles:{fillColor:[22,50,79]},alternateRowStyles:{fillColor:[240,243,247]},
+      didParseCell:d=>{if(d.section!=='body')return;const last=tb.boldLast&&d.row.index===tb.rows.length-1;if(last||(tb.boldCol!=null&&d.column.index===tb.boldCol))d.cell.styles.fontStyle='bold';if(last)d.cell.styles.fillColor=[232,236,242]}});
+    y=doc.lastAutoTable.finalY+10});
+  return doc.output('blob');
+}
+/* ===== colours per activity (timeline & charts) ===== */
+const COL={'Driving':'#2f6fd6','Loading':'#e8a317','Unload':'#d9782b','Coupling':'#8e5bd0','Uncoupling':'#b48ae6','Register':'#3aa3a3','Wait':'#8a96a6','Break':'#3fa66a','Sleep':'#1f6e4a','Fuel':'#c94f8a','Truckwash':'#36a3d9','Maintenance':'#8a6d4b','Break down':'#d64541','Other':'#5a6bb0','Traffic jam':'#7f8c3a','Unknown':'repeating-linear-gradient(135deg,#7d8794 0 5px,#b9c0ca 5px 10px)'};
+function intervals(dk){
+  const d0=dayFromIso(dk).getTime(), d1=new Date(dayFromIso(dk).getFullYear(),dayFromIso(dk).getMonth(),dayFromIso(dk).getDate()+1).getTime();
+  const s=sorted(), out=[];
+  for(let i=0;i<s.length;i++){const e=s[i];if(DAYT.includes(e.type))continue;
+    const end=s[i+1]?s[i+1].ts:Date.now();const a=Math.max(e.ts,d0),b=Math.min(end,d1);if(b>a)out.push({type:e.type,label:dispType(e),a:(a-d0)/(d1-d0),b:(b-d0)/(d1-d0)})}
+  return out;
+}
+function drawTimeline(el,dk,showNow,axis){
+  el.innerHTML='';const tl=document.createElement('div');tl.className='tl';
+  const used=new Set();
+  intervals(dk).forEach(iv=>{const sg=document.createElement('div');sg.className='seg';sg.style.left=(iv.a*100)+'%';sg.style.width=Math.max(.3,(iv.b-iv.a)*100)+'%';sg.style.background=COL[iv.type]||'#888';sg.title=iv.label;tl.appendChild(sg);used.add(iv.type)});
+  if(showNow){const n=new Date();const f=(n-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5;const nl=document.createElement('div');nl.className='nowl';nl.style.left=`calc(${f*100}% - 1px)`;tl.appendChild(nl)}
+  el.appendChild(tl);
+  if(axis){const ax=document.createElement('div');ax.className='tlaxis';[0,6,12,18,24].forEach(h=>{const sp=document.createElement('span');sp.style.left=(h/24*100)+'%';sp.textContent=pad(h);ax.appendChild(sp)});el.appendChild(ax)}
+  return used;
+}
+function drawLegend(el,used){el.innerHTML='';ORDER.filter(a=>used.has(a)).forEach(a=>{const sp=document.createElement('span');const i=document.createElement('i');i.style.background=COL[a];sp.appendChild(i);sp.appendChild(document.createTextNode(tA(a)));el.appendChild(sp)})}
+/* ===== fuel consumption ===== */
+function fuelData(){
+  const fills=sorted().filter(e=>e.type==='Fuel'&&(e.litres!=null||e.km!=null));let prevKm=null;
+  return fills.map(e=>{let dist=null,l100=null;if(e.km!=null&&prevKm!=null&&e.km>prevKm){dist=e.km-prevKm;if(e.litres!=null)l100=e.litres/dist*100}if(e.km!=null)prevKm=e.km;return {e,dist,l100}});
+}
+function fuelPeriod(){const list=fuelData().filter(x=>inRangeKey(isoDay(new Date(x.e.ts))));
+  const litres=list.reduce((s,x)=>s+(x.e.litres||0),0);const ok=list.filter(x=>x.l100!=null);
+  const avg=ok.length?ok.reduce((s,x)=>s+x.e.litres,0)/ok.reduce((s,x)=>s+x.dist,0)*100:null;return {list,litres,avg}}
+function allTrips(){
+  const list=trips.map(x=>({...x}));const have=new Set(trips.map(x=>x.no));const s=sorted();const g={};
+  s.forEach((e,i)=>{if(e.trip&&!have.has(e.trip)){const o=g[e.trip]||(g[e.trip]={id:'d-'+e.trip,no:e.trip,start:e.ts,end:null,derived:true});o.end=s[i+1]?s[i+1].ts:null}});
+  return [...list,...Object.values(g)].sort((a,b)=>b.start-a.start);
+}
+function tripData(tr){
+  const a=tr.start,b=tr.end||Date.now(),s=sorted(),acts={},others={},orders=[],rows=[];
+  for(let i=0;i<s.length;i++){const e=s[i],end=s[i+1]?s[i+1].ts:Date.now();
+    if(DAYT.includes(e.type)){if(e.ts>=a&&e.ts<=b)rows.push({e,from:e.ts,to:null});continue}
+    const from=Math.max(e.ts,a),to=Math.min(end,b);if(to<=from)continue;
+    acts[e.type]=(acts[e.type]||0)+(to-from);
+    if(e.type==='Other'){const n=e.other||'Other';others[n]=(others[n]||0)+(to-from)}
+    if(e.order&&e.ts>=a)orders.push({e,from});
+    rows.push({e,from,to,ongoing:!s[i+1]&&!tr.end})}
+  const borders=sortedAll().filter(e=>MARK.has(e.type)&&e.ts>=a&&e.ts<=b);borders.forEach(e=>rows.push({e,from:e.ts,to:null}));rows.sort((x,y)=>x.from-y.from);
+  const km=(tr.startKm!=null&&tr.endKm!=null)?Math.max(0,tr.endKm-tr.startKm):null;
+  return {a,b,acts,others,orders,rows,km,borders};
+}
+
+/* ===================== portal ===================== */
+const CFG={url:'https://ujsjnhlhmdrsfrivvbzt.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqc2puaGxobWRyc2ZyaXZ2Ynp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NzM3ODgsImV4cCI6MjExMDA0OTc4OH0.jpPcxxfHd-c41nnSkC77PvF9aM6dIenmHz3ccgCJTI0'};
+const DEMO=!!window.PORTAL_DEMO;
+const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(x){const el=$('toast');el.textContent=x;el.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove('show'),2600)}
+const pls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+
+/* ----- portal texts (reports stay in English, like in the app) ----- */
+const PT={
+en:{"p.title":"Company portal","p.overview":"Drivers","p.trips":"Trips & orders","p.summary":"Summary","p.logout":"Sign out","p.signinT":"Sign in","p.user":"User","p.pass":"Password","p.signin":"Sign in","p.loginNote":"Use the user and password you received for your company.","p.badLogin":"Wrong user or password.","p.noAccess":"This account has no company access.","p.inactive":"Access for this company is not active. Contact the provider.","p.serverErr":"The server did not answer. Check the internet and try again.","p.demo":"Preview with example data. Nothing here is real.","p.from":"From","p.to":"To","p.week":"7 days","p.month":"This month","p.prevMonth":"Last month","p.all":"All","p.kDrivers":"Drivers","p.kDriving":"Driving now","p.kWorking":"Other work","p.kResting":"Resting / off duty","p.kAttention":"Need attention","p.attention":"Needs attention","p.allGood":"Nothing needs attention right now.","p.reload":"Refresh","p.updated":"Updated {t}","p.liveNote":"A driver’s data arrives when his phone has internet and the app is open. “Last update” shows how fresh each row is.","p.driver":"Driver","p.now":"Now","p.location":"Location","p.today":"Today","p.driving":"Driving","p.work":"Work time","p.km":"Km","p.trip":"Trip","p.limits":"Driving limits","p.lastSync":"Last update","p.noDrivers":"No drivers yet. A driver appears here after he opens the app activated with your company code.","p.inactiveDrivers":"No update in the last 30 days","p.ago":"{t} ago","p.justNow":"just now","p.since":"since {t}","p.offDuty":"Off duty","p.noLog":"No entries","p.map":"map","p.cont":"Without break","p.dayDrive":"Today","p.weekDrive":"This week","p.fortDrive":"Two weeks","p.aBreakdown":"Breakdown since {t}","p.aCont":"Driving {t} without a break (limit 4:30)","p.aContNear":"Break needed soon: {t} driving without a break","p.aDay":"Driving today {t} (limit {m})","p.aWeek":"Driving this week {t} (limit 56:00)","p.aFort":"Driving in two weeks {t} (limit 90:00)","p.aWeekly":"Weekly rest was due {d}","p.aLongDay":"Working day open for {t}","p.aUnknown":"Unknown periods not corrected yet: {n}","p.asOf":"last known, {t}","p.aStale":"No update for {t} while the day is open","p.back":"← All drivers","p.truck":"Truck","p.trailer":"Trailer","p.seen":"Last update","p.report":"Report","p.byDays":"By days","p.totals":"Totals","p.days":"Days","p.log":"Log","p.tripsTab":"Trips","p.fuel":"Fuel","p.daysWorked":"Days worked","p.dayStrips":"Day by day","p.limNote":"Driving time guide based on EU rule 561/2006, simplified. When the last update is old, the count stops at that update.","p.search":"Search activity, order, place…","p.day":"Day","p.start":"Start","p.end":"End","p.duration":"Duration","p.activity":"Activity","p.details":"Details","p.note":"Note","p.total":"Total","p.ongoing":"ongoing","p.nowWord":"now","p.noData":"No data for this period.","p.count":"{a} entries","p.tripNo":"Trip no.","p.orders":"Orders","p.order":"Order no.","p.find":"Find","p.searchTrips":"Trip, order, driver…","p.ordersList":"Orders","p.date":"Date","p.time":"Time","p.litres":"Litres","p.odo":"Odometer","p.dist":"Km since last fill","p.fuelTotal":"Fuel","p.fuelAvg":"Average","p.breakSleep":"Break + sleep","p.borders":"Borders","p.fuelL":"Fuel (L)","p.avg":"l/100 km","p.exportAll":"Excel – all drivers","p.pdfAll":"PDF – all drivers","p.sumNote":"The files contain the summary and, for each driver, the daily totals and the full activity log. Reports are always in English.","p.nothing":"Nothing to export for this period.","p.loading":"Loading…","p.seats":"Phones in use: {u} of {s}","p.code":"Activation code for drivers: {c}","p.unlimited":"unlimited","p.libMissing":"The export library did not load. Check the internet and reload the page."},
+ro:{"p.title":"Portalul firmei","p.overview":"Șoferi","p.trips":"Curse și comenzi","p.summary":"Sumar","p.logout":"Ieșire","p.signinT":"Intră în cont","p.user":"Utilizator","p.pass":"Parolă","p.signin":"Intră","p.loginNote":"Folosește utilizatorul și parola primite pentru firma ta.","p.badLogin":"Utilizator sau parolă greșită.","p.noAccess":"Acest cont nu are acces la nicio firmă.","p.inactive":"Accesul pentru această firmă nu este activ. Contactează furnizorul.","p.serverErr":"Serverul nu răspunde. Verifică internetul și încearcă din nou.","p.demo":"Previzualizare cu date de exemplu. Nimic de aici nu e real.","p.from":"De la","p.to":"Până la","p.week":"7 zile","p.month":"Luna aceasta","p.prevMonth":"Luna trecută","p.all":"Tot","p.kDrivers":"Șoferi","p.kDriving":"Conduc acum","p.kWorking":"Altă activitate","p.kResting":"Odihnă / liber","p.kAttention":"Necesită atenție","p.attention":"Necesită atenție","p.allGood":"Nimic nu necesită atenție acum.","p.reload":"Actualizează","p.updated":"Actualizat {t}","p.liveNote":"Datele unui șofer ajung când telefonul lui are internet și aplicația e deschisă. „Ultima actualizare” arată cât de proaspăt e fiecare rând.","p.driver":"Șofer","p.now":"Acum","p.location":"Locație","p.today":"Azi","p.driving":"Condus","p.work":"Timp de lucru","p.km":"Km","p.trip":"Cursă","p.limits":"Limite de condus","p.lastSync":"Ultima actualizare","p.noDrivers":"Încă nu sunt șoferi. Un șofer apare aici după ce deschide aplicația activată cu codul firmei tale.","p.inactiveDrivers":"Fără actualizare în ultimele 30 de zile","p.ago":"acum {t}","p.justNow":"chiar acum","p.since":"de la {t}","p.offDuty":"Liber","p.noLog":"Fără înregistrări","p.map":"hartă","p.cont":"Fără pauză","p.dayDrive":"Azi","p.weekDrive":"Săptămâna aceasta","p.fortDrive":"Două săptămâni","p.aBreakdown":"Defecțiune de la {t}","p.aCont":"Conduce de {t} fără pauză (limita 4:30)","p.aContNear":"Trebuie pauză în curând: {t} de condus fără pauză","p.aDay":"Condus azi {t} (limita {m})","p.aWeek":"Condus săptămâna aceasta {t} (limita 56:00)","p.aFort":"Condus în două săptămâni {t} (limita 90:00)","p.aWeekly":"Odihna săptămânală trebuia luată până {d}","p.aLongDay":"Zi de lucru deschisă de {t}","p.aUnknown":"Perioade necunoscute necorectate: {n}","p.asOf":"ultima stare știută, {t}","p.aStale":"Nicio actualizare de {t}, cu ziua deschisă","p.back":"← Toți șoferii","p.truck":"Camion","p.trailer":"Remorcă","p.seen":"Ultima actualizare","p.report":"Raport","p.byDays":"Pe zile","p.totals":"Totaluri","p.days":"Zile","p.log":"Jurnal","p.tripsTab":"Curse","p.fuel":"Combustibil","p.daysWorked":"Zile lucrate","p.dayStrips":"Zi cu zi","p.limNote":"Ghid al timpilor de condus după regula UE 561/2006, simplificat. Dacă ultima actualizare e veche, calculul se oprește la acea actualizare.","p.search":"Caută activitate, comandă, loc…","p.day":"Zi","p.start":"Început","p.end":"Sfârșit","p.duration":"Durată","p.activity":"Activitate","p.details":"Detalii","p.note":"Notă","p.total":"Total","p.ongoing":"în curs","p.nowWord":"acum","p.noData":"Nu sunt date pentru această perioadă.","p.count":"{a} înregistrări","p.tripNo":"Nr. cursă","p.orders":"Comenzi","p.order":"Nr. comandă","p.find":"Caută","p.searchTrips":"Cursă, comandă, șofer…","p.ordersList":"Comenzi","p.date":"Data","p.time":"Ora","p.litres":"Litri","p.odo":"Kilometraj","p.dist":"Km de la ultimul plin","p.fuelTotal":"Combustibil","p.fuelAvg":"Medie","p.breakSleep":"Pauză + somn","p.borders":"Frontiere","p.fuelL":"Combustibil (L)","p.avg":"l/100 km","p.exportAll":"Excel – toți șoferii","p.pdfAll":"PDF – toți șoferii","p.sumNote":"Fișierele conțin sumarul și, pentru fiecare șofer, totalurile zilnice și jurnalul complet. Rapoartele sunt mereu în engleză.","p.nothing":"Nu e nimic de exportat pentru această perioadă.","p.loading":"Se încarcă…","p.seats":"Telefoane folosite: {u} din {s}","p.code":"Codul de activare pentru șoferi: {c}","p.unlimited":"nelimitat","p.libMissing":"Biblioteca de export nu s-a încărcat. Verifică internetul și reîncarcă pagina."},
+de:{"p.title":"Firmenportal","p.overview":"Fahrer","p.trips":"Touren & Aufträge","p.summary":"Übersicht","p.logout":"Abmelden","p.signinT":"Anmelden","p.user":"Benutzer","p.pass":"Passwort","p.signin":"Anmelden","p.loginNote":"Verwende den Benutzer und das Passwort, die du für deine Firma erhalten hast.","p.badLogin":"Benutzer oder Passwort falsch.","p.noAccess":"Dieses Konto hat keinen Firmenzugang.","p.inactive":"Der Zugang für diese Firma ist nicht aktiv. Wende dich an den Anbieter.","p.serverErr":"Der Server antwortet nicht. Prüfe das Internet und versuche es erneut.","p.demo":"Vorschau mit Beispieldaten. Nichts hier ist echt.","p.from":"Von","p.to":"Bis","p.week":"7 Tage","p.month":"Dieser Monat","p.prevMonth":"Letzter Monat","p.all":"Alles","p.kDrivers":"Fahrer","p.kDriving":"Fahren gerade","p.kWorking":"Andere Arbeit","p.kResting":"Ruhe / frei","p.kAttention":"Achtung nötig","p.attention":"Achtung nötig","p.allGood":"Im Moment ist nichts zu beachten.","p.reload":"Aktualisieren","p.updated":"Aktualisiert {t}","p.liveNote":"Die Daten eines Fahrers kommen an, wenn sein Handy Internet hat und die App geöffnet ist. „Letzte Aktualisierung“ zeigt, wie aktuell jede Zeile ist.","p.driver":"Fahrer","p.now":"Jetzt","p.location":"Standort","p.today":"Heute","p.driving":"Lenkzeit","p.work":"Arbeitszeit","p.km":"Km","p.trip":"Tour","p.limits":"Lenkzeit-Grenzen","p.lastSync":"Letzte Aktualisierung","p.noDrivers":"Noch keine Fahrer. Ein Fahrer erscheint hier, sobald er die mit eurem Firmencode aktivierte App öffnet.","p.inactiveDrivers":"Keine Aktualisierung in den letzten 30 Tagen","p.ago":"vor {t}","p.justNow":"gerade eben","p.since":"seit {t}","p.offDuty":"Frei","p.noLog":"Keine Einträge","p.map":"Karte","p.cont":"Ohne Pause","p.dayDrive":"Heute","p.weekDrive":"Diese Woche","p.fortDrive":"Zwei Wochen","p.aBreakdown":"Panne seit {t}","p.aCont":"Fährt seit {t} ohne Pause (Grenze 4:30)","p.aContNear":"Bald Pause nötig: {t} Lenkzeit ohne Pause","p.aDay":"Lenkzeit heute {t} (Grenze {m})","p.aWeek":"Lenkzeit diese Woche {t} (Grenze 56:00)","p.aFort":"Lenkzeit in zwei Wochen {t} (Grenze 90:00)","p.aWeekly":"Wochenruhezeit war fällig am {d}","p.aLongDay":"Arbeitstag seit {t} offen","p.aUnknown":"Unbekannte Zeiträume noch nicht korrigiert: {n}","p.asOf":"letzter bekannter Stand, {t}","p.aStale":"Seit {t} keine Aktualisierung bei offenem Tag","p.back":"← Alle Fahrer","p.truck":"LKW","p.trailer":"Auflieger","p.seen":"Letzte Aktualisierung","p.report":"Bericht","p.byDays":"Nach Tagen","p.totals":"Summen","p.days":"Tage","p.log":"Protokoll","p.tripsTab":"Touren","p.fuel":"Kraftstoff","p.daysWorked":"Arbeitstage","p.dayStrips":"Tag für Tag","p.limNote":"Lenkzeit-Hilfe nach EU-Verordnung 561/2006, vereinfacht. Ist die letzte Aktualisierung alt, endet die Zählung dort.","p.search":"Tätigkeit, Auftrag, Ort suchen…","p.day":"Tag","p.start":"Beginn","p.end":"Ende","p.duration":"Dauer","p.activity":"Tätigkeit","p.details":"Details","p.note":"Notiz","p.total":"Summe","p.ongoing":"läuft","p.nowWord":"jetzt","p.noData":"Keine Daten für diesen Zeitraum.","p.count":"{a} Einträge","p.tripNo":"Tour-Nr.","p.orders":"Aufträge","p.order":"Auftrags-Nr.","p.find":"Suchen","p.searchTrips":"Tour, Auftrag, Fahrer…","p.ordersList":"Aufträge","p.date":"Datum","p.time":"Zeit","p.litres":"Liter","p.odo":"Kilometerstand","p.dist":"Km seit letzter Tankung","p.fuelTotal":"Kraftstoff","p.fuelAvg":"Durchschnitt","p.breakSleep":"Pause + Schlaf","p.borders":"Grenzen","p.fuelL":"Kraftstoff (L)","p.avg":"l/100 km","p.exportAll":"Excel – alle Fahrer","p.pdfAll":"PDF – alle Fahrer","p.sumNote":"Die Dateien enthalten die Übersicht und für jeden Fahrer die Tagessummen und das vollständige Protokoll. Berichte sind immer auf Englisch.","p.nothing":"Für diesen Zeitraum gibt es nichts zu exportieren.","p.loading":"Lädt…","p.seats":"Handys in Benutzung: {u} von {s}","p.code":"Aktivierungscode für Fahrer: {c}","p.unlimited":"unbegrenzt","p.libMissing":"Die Export-Bibliothek wurde nicht geladen. Prüfe das Internet und lade die Seite neu."},
+fr:{"p.title":"Portail de l'entreprise","p.overview":"Chauffeurs","p.trips":"Trajets et commandes","p.summary":"Résumé","p.logout":"Déconnexion","p.signinT":"Connexion","p.user":"Utilisateur","p.pass":"Mot de passe","p.signin":"Se connecter","p.loginNote":"Utilisez l'utilisateur et le mot de passe reçus pour votre entreprise.","p.badLogin":"Utilisateur ou mot de passe incorrect.","p.noAccess":"Ce compte n'a accès à aucune entreprise.","p.inactive":"L'accès de cette entreprise n'est pas actif. Contactez le fournisseur.","p.serverErr":"Le serveur ne répond pas. Vérifiez internet et réessayez.","p.demo":"Aperçu avec des données d'exemple. Rien ici n'est réel.","p.from":"Du","p.to":"Au","p.week":"7 jours","p.month":"Ce mois","p.prevMonth":"Mois dernier","p.all":"Tout","p.kDrivers":"Chauffeurs","p.kDriving":"En conduite","p.kWorking":"Autre travail","p.kResting":"Repos / hors service","p.kAttention":"À surveiller","p.attention":"À surveiller","p.allGood":"Rien à signaler pour le moment.","p.reload":"Actualiser","p.updated":"Mis à jour {t}","p.liveNote":"Les données d'un chauffeur arrivent quand son téléphone a internet et que l'application est ouverte. « Dernière mise à jour » indique la fraîcheur de chaque ligne.","p.driver":"Chauffeur","p.now":"Maintenant","p.location":"Lieu","p.today":"Aujourd'hui","p.driving":"Conduite","p.work":"Temps de travail","p.km":"Km","p.trip":"Trajet","p.limits":"Limites de conduite","p.lastSync":"Dernière mise à jour","p.noDrivers":"Pas encore de chauffeurs. Un chauffeur apparaît ici après avoir ouvert l'application activée avec le code de votre entreprise.","p.inactiveDrivers":"Aucune mise à jour depuis 30 jours","p.ago":"il y a {t}","p.justNow":"à l'instant","p.since":"depuis {t}","p.offDuty":"Hors service","p.noLog":"Aucune entrée","p.map":"carte","p.cont":"Sans pause","p.dayDrive":"Aujourd'hui","p.weekDrive":"Cette semaine","p.fortDrive":"Deux semaines","p.aBreakdown":"Panne depuis {t}","p.aCont":"Conduit depuis {t} sans pause (limite 4:30)","p.aContNear":"Pause bientôt nécessaire : {t} de conduite sans pause","p.aDay":"Conduite aujourd'hui {t} (limite {m})","p.aWeek":"Conduite cette semaine {t} (limite 56:00)","p.aFort":"Conduite sur deux semaines {t} (limite 90:00)","p.aWeekly":"Le repos hebdomadaire était dû le {d}","p.aLongDay":"Journée de travail ouverte depuis {t}","p.aUnknown":"Périodes inconnues non corrigées : {n}","p.asOf":"dernier état connu, {t}","p.aStale":"Aucune mise à jour depuis {t}, journée ouverte","p.back":"← Tous les chauffeurs","p.truck":"Camion","p.trailer":"Remorque","p.seen":"Dernière mise à jour","p.report":"Rapport","p.byDays":"Par jours","p.totals":"Totaux","p.days":"Jours","p.log":"Journal","p.tripsTab":"Trajets","p.fuel":"Carburant","p.daysWorked":"Jours travaillés","p.dayStrips":"Jour par jour","p.limNote":"Guide des temps de conduite selon le règlement UE 561/2006, simplifié. Si la dernière mise à jour est ancienne, le calcul s'arrête à celle-ci.","p.search":"Chercher activité, commande, lieu…","p.day":"Jour","p.start":"Début","p.end":"Fin","p.duration":"Durée","p.activity":"Activité","p.details":"Détails","p.note":"Note","p.total":"Total","p.ongoing":"en cours","p.nowWord":"maintenant","p.noData":"Aucune donnée pour cette période.","p.count":"{a} entrées","p.tripNo":"N° trajet","p.orders":"Commandes","p.order":"N° commande","p.find":"Chercher","p.searchTrips":"Trajet, commande, chauffeur…","p.ordersList":"Commandes","p.date":"Date","p.time":"Heure","p.litres":"Litres","p.odo":"Kilométrage","p.dist":"Km depuis le dernier plein","p.fuelTotal":"Carburant","p.fuelAvg":"Moyenne","p.breakSleep":"Pause + sommeil","p.borders":"Frontières","p.fuelL":"Carburant (L)","p.avg":"l/100 km","p.exportAll":"Excel – tous les chauffeurs","p.pdfAll":"PDF – tous les chauffeurs","p.sumNote":"Les fichiers contiennent le résumé et, pour chaque chauffeur, les totaux journaliers et le journal complet. Les rapports sont toujours en anglais.","p.nothing":"Rien à exporter pour cette période.","p.loading":"Chargement…","p.seats":"Téléphones utilisés : {u} sur {s}","p.code":"Code d'activation pour les chauffeurs : {c}","p.unlimited":"illimité","p.libMissing":"La bibliothèque d'export ne s'est pas chargée. Vérifiez internet et rechargez la page."},
+nl:{"p.title":"Bedrijfsportaal","p.overview":"Chauffeurs","p.trips":"Ritten & orders","p.summary":"Overzicht","p.logout":"Uitloggen","p.signinT":"Inloggen","p.user":"Gebruiker","p.pass":"Wachtwoord","p.signin":"Inloggen","p.loginNote":"Gebruik de gebruikersnaam en het wachtwoord die je voor je bedrijf hebt gekregen.","p.badLogin":"Gebruiker of wachtwoord onjuist.","p.noAccess":"Dit account heeft geen toegang tot een bedrijf.","p.inactive":"De toegang voor dit bedrijf is niet actief. Neem contact op met de leverancier.","p.serverErr":"De server reageert niet. Controleer internet en probeer opnieuw.","p.demo":"Voorbeeld met voorbeeldgegevens. Niets hier is echt.","p.from":"Van","p.to":"Tot","p.week":"7 dagen","p.month":"Deze maand","p.prevMonth":"Vorige maand","p.all":"Alles","p.kDrivers":"Chauffeurs","p.kDriving":"Rijden nu","p.kWorking":"Ander werk","p.kResting":"Rust / vrij","p.kAttention":"Aandacht nodig","p.attention":"Aandacht nodig","p.allGood":"Er is nu niets dat aandacht nodig heeft.","p.reload":"Vernieuwen","p.updated":"Bijgewerkt {t}","p.liveNote":"De gegevens van een chauffeur komen binnen als zijn telefoon internet heeft en de app open is. ‘Laatste update’ laat zien hoe actueel elke regel is.","p.driver":"Chauffeur","p.now":"Nu","p.location":"Locatie","p.today":"Vandaag","p.driving":"Rijtijd","p.work":"Werktijd","p.km":"Km","p.trip":"Rit","p.limits":"Rijtijdlimieten","p.lastSync":"Laatste update","p.noDrivers":"Nog geen chauffeurs. Een chauffeur verschijnt hier nadat hij de app opent die met jullie bedrijfscode is geactiveerd.","p.inactiveDrivers":"Geen update in de laatste 30 dagen","p.ago":"{t} geleden","p.justNow":"zojuist","p.since":"sinds {t}","p.offDuty":"Vrij","p.noLog":"Geen regels","p.map":"kaart","p.cont":"Zonder pauze","p.dayDrive":"Vandaag","p.weekDrive":"Deze week","p.fortDrive":"Twee weken","p.aBreakdown":"Pech sinds {t}","p.aCont":"Rijdt {t} zonder pauze (limiet 4:30)","p.aContNear":"Binnenkort pauze nodig: {t} rijden zonder pauze","p.aDay":"Rijtijd vandaag {t} (limiet {m})","p.aWeek":"Rijtijd deze week {t} (limiet 56:00)","p.aFort":"Rijtijd in twee weken {t} (limiet 90:00)","p.aWeekly":"Wekelijkse rust had moeten ingaan op {d}","p.aLongDay":"Werkdag staat {t} open","p.aUnknown":"Onbekende periodes nog niet gecorrigeerd: {n}","p.asOf":"laatst bekend, {t}","p.aStale":"Geen update sinds {t} terwijl de dag open staat","p.back":"← Alle chauffeurs","p.truck":"Vrachtwagen","p.trailer":"Trailer","p.seen":"Laatste update","p.report":"Rapport","p.byDays":"Per dag","p.totals":"Totalen","p.days":"Dagen","p.log":"Logboek","p.tripsTab":"Ritten","p.fuel":"Brandstof","p.daysWorked":"Gewerkte dagen","p.dayStrips":"Dag voor dag","p.limNote":"Rijtijdhulp volgens EU-verordening 561/2006, vereenvoudigd. Als de laatste update oud is, stopt de telling bij die update.","p.search":"Zoek activiteit, order, plaats…","p.day":"Dag","p.start":"Begin","p.end":"Einde","p.duration":"Duur","p.activity":"Activiteit","p.details":"Details","p.note":"Notitie","p.total":"Totaal","p.ongoing":"loopt","p.nowWord":"nu","p.noData":"Geen gegevens voor deze periode.","p.count":"{a} regels","p.tripNo":"Ritnr.","p.orders":"Orders","p.order":"Ordernr.","p.find":"Zoeken","p.searchTrips":"Rit, order, chauffeur…","p.ordersList":"Orders","p.date":"Datum","p.time":"Tijd","p.litres":"Liters","p.odo":"Kilometerstand","p.dist":"Km sinds laatste tankbeurt","p.fuelTotal":"Brandstof","p.fuelAvg":"Gemiddeld","p.breakSleep":"Pauze + slaap","p.borders":"Grenzen","p.fuelL":"Brandstof (L)","p.avg":"l/100 km","p.exportAll":"Excel – alle chauffeurs","p.pdfAll":"PDF – alle chauffeurs","p.sumNote":"De bestanden bevatten het overzicht en per chauffeur de dagtotalen en het volledige logboek. Rapporten zijn altijd in het Engels.","p.nothing":"Niets te exporteren voor deze periode.","p.loading":"Laden…","p.seats":"Telefoons in gebruik: {u} van {s}","p.code":"Activeringscode voor chauffeurs: {c}","p.unlimited":"onbeperkt","p.libMissing":"De exportbibliotheek is niet geladen. Controleer internet en laad de pagina opnieuw."}
+};
+Object.keys(PT).forEach(k=>Object.assign(L[k],PT[k]));
+
+/* ----- clock: totals of a driver stop at his last update when it is old ----- */
+const realNow=Date.now.bind(Date);let asOf=null;Date.now=()=>asOf==null?realNow():asOf;
+
+/* ----- small helpers ----- */
+const el=(tag,cls,txt)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(txt!=null)x.textContent=txt;return x};
+const todayKey=()=>isoDay(new Date());
+const addDays=(k,n)=>{const d=dayFromIso(k);d.setDate(d.getDate()+n);return isoDay(d)};
+function fmtSpan(ms){const m=Math.max(0,Math.round(ms/60000));return m<60?`${m} min`:(m<24*60?`${Math.floor(m/60)} h ${pad(m%60)} min`:`${Math.floor(m/1440)} d ${Math.floor(m%1440/60)} h`)}
+function fmtAgo(ms){return ms<120e3?t('p.justNow'):t('p.ago',{t:fmtSpan(ms)})}
+const hm=ms=>fmtHM(ms);
+function chip(e,plain){const c=el('span','chip',e.type==='End day'&&!plain?t('p.offDuty'):dispType(e));const col=COL[e.type];if(e.type==='Unknown'){c.style.background=col;c.classList.add('light')}else if(col)c.style.background=col;else if(e.type==='Border')c.style.background='#2b6f6f';else if(e.type==='Start day')c.style.background='#2e7d4f';return c}
+function mapLink(e){if(e.lat==null)return null;const a=el('a',null,t('p.map'));a.href=`https://maps.google.com/?q=${e.lat},${e.lon}`;a.target='_blank';a.rel='noopener';return a}
+function head(id,cols){const h=$(id);h.innerHTML='';const tr=el('tr');cols.forEach(c=>{const th=el('th',c.n?'n':null,c.t);tr.appendChild(th)});h.appendChild(tr)}
+function emptyRow(tb,n,txt){const tr=el('tr');const td=el('td','empty',txt);td.colSpan=n;tr.appendChild(td);tb.appendChild(tr)}
+function download(name,blob){try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast(String(e&&e.message||e))}}
+const fileSafe=x=>noDia(String(x||'driver')).replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'')||'driver';
+
+/* ----- server ----- */
+let sess=pls.get('tlp-sess',null), me=null, drivers=[], store0={}, loadedFrom=null, lastPoll=0, pollH=null;
+async function api(path,opt={}){
+  if(DEMO)return demoApi(path,opt);
+  if(sess&&sess.exp&&realNow()>sess.exp-60e3)await refreshSess();
+  let r;try{r=await fetch(CFG.url+path,{...opt,headers:{apikey:CFG.key,Authorization:'Bearer '+(sess?sess.at:CFG.key),'Content-Type':'application/json',...(opt.headers||{})}})}catch(e){throw new Error(t('p.serverErr'))}
+  if(r.status===401){signOut();throw new Error(t('p.badLogin'))}
+  if(!r.ok){let m='';try{const j=await r.json();m=j.message||j.msg||j.error_description||''}catch(e){}throw new Error(m||('Error '+r.status))}
+  return r.status===204?null:r.json();
+}
+async function refreshSess(){
+  const r=await fetch(CFG.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:CFG.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sess.rt})});
+  if(!r.ok){signOut();throw new Error(t('p.badLogin'))}
+  const j=await r.json();sess={...sess,at:j.access_token,rt:j.refresh_token,exp:realNow()+(j.expires_in||3600)*1000};pls.set('tlp-sess',sess);
+}
+function signOut(){sess=null;me=null;drivers=[];store0={};loadedFrom=null;pls.del('tlp-sess');clearInterval(pollH);showShell()}
+async function signIn(){
+  $('lErr').hidden=true;$('btnLogin').disabled=true;
+  try{
+    if(DEMO)sess={at:'demo'};
+    else{
+      const u=$('lUser').value.trim().toLowerCase();
+      let r;try{r=await fetch(CFG.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:CFG.key,'Content-Type':'application/json'},body:JSON.stringify({email:u.includes('@')?u:u+'@trucklog.app',password:$('lPass').value})})}catch(e){throw new Error(t('p.serverErr'))}
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(t('p.badLogin'));
+      sess={at:j.access_token,rt:j.refresh_token,exp:realNow()+(j.expires_in||3600)*1000};
+    }
+    pls.set('tlp-sess',sess);$('lPass').value='';await boot();
+  }catch(e){$('lErr').textContent=e.message;$('lErr').hidden=false}
+  $('btnLogin').disabled=false;
+}
+async function fetchDays(query){
+  const out=[];for(let off=0;;off+=1000){const rows=await api(`/rest/v1/driver_days?select=driver_id,day,entries,updated_at&${query}&order=day.asc,driver_id.asc&limit=1000&offset=${off}`)||[];out.push(...rows);if(rows.length<1000)break}
+  return out;
+}
+function mergeDays(rows){rows.forEach(r=>{const m=store0[r.driver_id]||(store0[r.driver_id]={});m[r.day]={e:Array.isArray(r.entries)?r.entries:[],u:Date.parse(r.updated_at)||0}})}
+async function loadDrivers(){drivers=(await api('/rest/v1/drivers?select=id,name,truck,state,synced_at&order=name.asc')||[]).map(d=>({...d,state:d.state||{}}))}
+/* make sure days from `fromKey` (or everything, when '') are loaded */
+async function ensureFrom(fromKey){
+  if(loadedFrom==='')return;
+  if(fromKey===''){mergeDays(await fetchDays(loadedFrom?`day=lt.${loadedFrom}`:'day=gte.1900-01-01'));loadedFrom='';return}
+  if(loadedFrom==null){mergeDays(await fetchDays(`day=gte.${fromKey}`));loadedFrom=fromKey;return}
+  if(fromKey<loadedFrom){mergeDays(await fetchDays(`day=gte.${fromKey}&day=lt.${loadedFrom}`));loadedFrom=fromKey}
+}
+async function poll(full){
+  const since=new Date(Math.max(0,(full?0:lastPoll)-120e3)).toISOString();const started=realNow();
+  await loadDrivers();
+  if(full){store0={};const lf=loadedFrom;loadedFrom=null;await ensureFrom(lf==null?addDays(todayKey(),-21):lf)}
+  else mergeDays(await fetchDays(`updated_at=gte.${encodeURIComponent(since)}`));
+  lastPoll=started;
+}
+/* put one driver's data into the globals the report code reads */
+function useDriver(d){
+  const m=store0[d.id]||{};const byId=new Map();
+  Object.keys(m).map(k=>m[k]).sort((a,b)=>a.u-b.u).forEach(x=>x.e.forEach(e=>{if(e&&e.id&&e.ts&&e.type)byId.set(e.id,fixType(e))}));
+  entries=[...byId.values()];
+  trips=Array.isArray(d.state.trips)?d.state.trips:[];
+  settings={company:me?me.company:'',driver:d.name||'',trip:d.state.trip||'',truck:d.truck||'',lang:'',theme:'auto'};
+  const sy=Date.parse(d.synced_at)||0;asOf=(sy&&realNow()-sy>40*60e3)?sy:null;
+}
+const dname=d=>d.name||'—';
+
+/* ----- period ----- */
+function setRange(kind){const d=new Date();
+  if(kind==='week'){$('from').value=isoDay(new Date(d.getFullYear(),d.getMonth(),d.getDate()-6));$('to').value=isoDay(d)}
+  else if(kind==='month'){$('from').value=isoDay(new Date(d.getFullYear(),d.getMonth(),1));$('to').value=isoDay(d)}
+  else if(kind==='prev'){$('from').value=isoDay(new Date(d.getFullYear(),d.getMonth()-1,1));$('to').value=isoDay(new Date(d.getFullYear(),d.getMonth(),0))}
+  else{$('from').value='';$('to').value=''}
+}
+async function periodChanged(){try{await ensureFrom($('from').value?addDays($('from').value,-35):'')}catch(e){toast(e.message)}render()}
+document.querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{setRange(b.dataset.range);periodChanged()});
+$('from').onchange=periodChanged;$('to').onchange=periodChanged;
+
+/* ----- status of one driver (call after useDriver) ----- */
+function driverStatus(d){
+  const s=sorted(),cur=s.at(-1)||null,now=Date.now(),age=realNow()-(Date.parse(d.synced_at)||0);
+  const C=compute(),today=C.days[todayKey()]||null,L0=limits(),od=openDay(),ot=openTrip();
+  const dayMax=(L0.day>LIM.day&&L0.extUsed<2)?LIM.dayExt:LIM.day;
+  let group='none';if(cur&&age<6*H){group=cur.type==='Driving'?'driving':(cur.type==='Break'||cur.type==='Sleep'||cur.type==='End day')?'rest':'work'}
+  const fresh=age<45*60e3;const al=[];
+  const A=(sev,text)=>al.push({sev,text,d});
+  if(cur&&cur.type==='Break down')A('bad',t('p.aBreakdown',{t:fmtT(new Date(cur.ts))})+(cur.loc?' · '+cur.loc:''));
+  if(cur&&cur.type==='Driving'&&fresh){if(L0.cont>=LIM.cont)A('bad',t('p.aCont',{t:hm(L0.cont)}));else if(L0.cont>=LIM.cont-15*60e3)A('warn',t('p.aContNear',{t:hm(L0.cont)}))}
+  if(fresh||group!=='driving'){
+    if(L0.day>dayMax)A('bad',t('p.aDay',{t:hm(L0.day),m:hm(dayMax)}));
+    if(L0.week>LIM.week)A('bad',t('p.aWeek',{t:hm(L0.week)}));
+    if(L0.fort>LIM.fort)A('bad',t('p.aFort',{t:hm(L0.fort)}));
+  }
+  if(L0.weeklyDue!=null&&now>L0.weeklyDue&&group!=='rest')A('warn',t('p.aWeekly',{d:fmtT(new Date(L0.weeklyDue))}));
+  if(od&&now-od.ts>15*H&&fresh)A('warn',t('p.aLongDay',{t:fmtDur(now-od.ts)}));
+  if(od&&age>12*H)A('warn',t('p.aStale',{t:fmtSpan(age)}));
+  const unk=s.filter(e=>e.type==='Unknown'&&e.ts>now-3*864e5).length;if(unk)A('info',t('p.aUnknown',{n:unk}));
+  return {cur,group,age,fresh,today,L0,dayMax,od,ot,al,trailer:currentTrailer(),C};
+}
+function miniBar(val,max,near){const b=el('div','mbar'+(val>=max?' over':(val>=near?' near':'')));const i=el('i');i.style.width=Math.min(100,val/max*100)+'%';b.appendChild(i);return b}
+
+/* ----- overview ----- */
+function renderOverview(){
+  const tb=$('ovRows');tb.innerHTML='';const alerts=[];let nD=0,nW=0,nR=0;const used=new Set();
+  head('ovHead',[{t:t('p.driver')},{t:t('p.now')},{t:t('p.location')},{t:`${t('p.today')} 0–24`},{t:t('p.driving'),n:1},{t:t('p.work'),n:1},{t:t('p.km'),n:1},{t:t('p.trip')},{t:t('p.limits')},{t:t('p.lastSync')}]);
+  asOf=null;const now=realNow();const act=drivers.filter(d=>now-(Date.parse(d.synced_at)||0)<30*864e5),old=drivers.filter(d=>!act.includes(d));
+  if(!drivers.length)emptyRow(tb,10,t('p.noDrivers'));
+  const row=(d,dim)=>{
+    useDriver(d);const S=driverStatus(d);if(!dim){alerts.push(...S.al);if(S.group==='driving')nD++;else if(S.group==='work')nW++;else nR++}
+    const tr=el('tr','click');tr.tabIndex=0;tr.onclick=()=>openDriver(d.id);tr.onkeydown=e=>{if(e.key==='Enter')openDriver(d.id)};if(dim)tr.style.opacity='.65';
+    const c1=el('td');const n=el('div','dn',dname(d));n.appendChild(el('small',null,[d.truck,S.trailer?`${t('p.trailer')} ${S.trailer}`:''].filter(Boolean).join(' · ')||' '));c1.appendChild(n);
+    const c2=el('td');if(S.cur){c2.appendChild(chip(S.cur));c2.appendChild(el('span','sub',t('p.since',{t:isoDay(new Date(S.cur.ts))===todayKey()?fmtH(new Date(S.cur.ts)):fmtT(new Date(S.cur.ts))})));if(asOf!=null&&S.cur.type!=='End day'&&S.cur.type!=='Sleep')c2.appendChild(el('span','sub stale',t('p.asOf',{t:fmtT(new Date(asOf))})))}else c2.textContent=t('p.noLog');
+    const c3=el('td');if(S.cur){c3.appendChild(document.createTextNode((S.cur.loc||'—')+' '));const a=mapLink(S.cur);if(a){a.onclick=e=>e.stopPropagation();c3.appendChild(a)}}
+    const c4=el('td');const box=el('div');drawTimeline(box,todayKey(),true,false).forEach(x=>used.add(x));c4.appendChild(box);
+    const td=S.today;const c5=el('td','n',td&&td.acts['Driving']?hm(td.acts['Driving']):'');const c6=el('td','n',td&&workMs(td.acts)?hm(workMs(td.acts)):'');
+    const c7=el('td','n',td?(td.km?fmtKm(td.km):(td.open?'…':'')):'');
+    const c8=el('td',null,S.ot?String(S.ot.no):(d.state.trip||''));
+    const c9=el('td');const mini=el('div','mini');mini.append(el('span',null,`${t('p.cont')} ${hm(S.L0.cont)}`),miniBar(S.L0.cont,LIM.cont,LIM.cont-15*60e3),el('span',null,`${t('p.dayDrive')} ${hm(S.L0.day)}`),miniBar(S.L0.day,S.dayMax,S.dayMax-30*60e3));c9.appendChild(mini);
+    const c10=el('td');const ag=el('span',S.age>12*H&&S.od?'stale':null,fmtAgo(S.age));c10.appendChild(ag);
+    tr.append(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10);tb.appendChild(tr)};
+  act.forEach(d=>row(d,false));
+  if(old.length){const tr=el('tr','daysep');const td=el('td');td.colSpan=10;td.appendChild(el('div','dsum',t('p.inactiveDrivers')));tr.appendChild(td);tb.appendChild(tr);old.forEach(d=>row(d,true))}
+  drawLegend($('ovLegend'),used);
+  $('kDrivers').textContent=act.length;$('kDriving').textContent=nD;$('kWorking').textContent=nW;$('kResting').textContent=nR;
+  const sevN={bad:0,warn:1,info:2};alerts.sort((a,b)=>sevN[a.sev]-sevN[b.sev]);
+  const urgent=alerts.filter(a=>a.sev!=='info').length;$('kAtt').textContent=urgent;$('kAttBox').classList.toggle('zero',!urgent);
+  const ab=$('alerts');ab.innerHTML='';if(!alerts.length)ab.appendChild(el('span','ok',t('p.allGood')));
+  alerts.forEach(a=>{const b=el('button','al '+(a.sev==='info'?'':a.sev));b.type='button';b.onclick=()=>openDriver(a.d.id);b.append(el('span','dot'));const tx=el('span');tx.appendChild(el('b',null,dname(a.d)+' '));tx.appendChild(document.createTextNode('· '+a.text));b.appendChild(tx);b.appendChild(el('small',null,fmtAgo(now-(Date.parse(a.d.synced_at)||0))));ab.appendChild(b)});
+  $('updated').textContent=lastPoll?t('p.updated',{t:fmtH(new Date(lastPoll))}):'';
+  $('seats').textContent=me?t('p.seats',{u:me.used,s:me.seats==null?t('p.unlimited'):me.seats}):'';
+  $('codeTxt').textContent=me&&me.code?t('p.code',{c:me.code}):'';
+}
+
+/* ----- one driver ----- */
+let curId=null, dtab='days';
+function openDriver(id){curId=id;dtab='days';showView('driver')}
+const curDriver=()=>drivers.find(d=>d.id===curId)||null;
+function renderDriver(){
+  const d=curDriver();if(!d){showView('overview');return}
+  useDriver(d);const S=driverStatus(d);
+  $('dName').textContent=dname(d);
+  const f=$('dFacts');f.innerHTML='';const fact=(k,v)=>{if(!v)return;const sp=el('span',null,k+' ');sp.appendChild(el('b',null,v));f.appendChild(sp)};
+  fact(t('p.truck'),d.truck);fact(t('p.trailer'),S.trailer);fact(t('p.trip'),S.ot?String(S.ot.no):(d.state.trip||''));fact(t('p.seen'),fmtAgo(S.age));
+  const nw=$('dNow');nw.innerHTML='';if(S.cur){nw.appendChild(chip(S.cur));nw.appendChild(el('span','sub',t('p.since',{t:fmtT(new Date(S.cur.ts))})));const l=el('span','sub',(S.cur.loc||'')+' ');const a=mapLink(S.cur);if(a)l.appendChild(a);nw.appendChild(l)}
+  const lm=$('dLims');lm.innerHTML='';
+  const lim=(label,val,max,near)=>{const b=el('div','lim'+(val>=max?' over':''));b.appendChild(el('span',null,label));b.appendChild(el('b',null,`${hm(val)} / ${hm(max)}`));b.appendChild(miniBar(val,max,near));lm.appendChild(b)};
+  lim(t('p.cont'),S.L0.cont,LIM.cont,LIM.cont-15*60e3);lim(t('p.dayDrive'),S.L0.day,S.dayMax,S.dayMax-30*60e3);lim(t('p.weekDrive'),S.L0.week,LIM.week,LIM.week-4*H);lim(t('p.fortDrive'),S.L0.fort,LIM.fort,LIM.fort-6*H);
+  document.querySelectorAll('[data-dt]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.dt===dtab)));
+  ['days','log','trips','fuel'].forEach(x=>{$('dt-'+x).hidden=x!==dtab});
+  const C=compute();
+  if(dtab==='days')renderDays(C);else if(dtab==='log')renderLog(C);else if(dtab==='trips')renderDriverTrips();else renderFuelTab();
+}
+document.querySelectorAll('[data-dt]').forEach(b=>b.onclick=()=>{dtab=b.dataset.dt;renderDriver()});
+$('btnBack').onclick=()=>showView('overview');
+function totalsOf(C){const keys=periodDays(C);const tot={};let km=0,days=0;
+  keys.forEach(k=>{const d=C.days[k];km+=d.km;let w=d.km>0||d.open||d.startKm!=null;ORDER.forEach(a=>{if(d.acts[a]){tot[a]=(tot[a]||0)+d.acts[a];w=true}});if(w)days++});
+  return {keys,tot,km,days,work:workMs(tot),drive:tot['Driving']||0,rest:(tot['Break']||0)+(tot['Sleep']||0)}}
+function renderDays(C){
+  const T=totalsOf(C);$('dKm').textContent=fmtKm(T.km)||'0';$('dDrive').textContent=hm(T.drive);$('dWork').textContent=hm(T.work);$('dDays').textContent=String(T.days);
+  const keys=T.keys.slice().reverse();const cols=actCols(C,keys);
+  head('sumHead',[{t:t('p.day')},{t:t('p.trip')},{t:t('p.km'),n:1},{t:t('p.work'),n:1},...cols.map(a=>({t:tA(a),n:1}))]);
+  const tb=$('sumRows');tb.innerHTML='';
+  if(!keys.length){emptyRow(tb,4+cols.length,t('p.noData'))}
+  else{
+    const row=(cells,cls)=>{const tr=el('tr',cls);cells.forEach((c,i)=>tr.appendChild(el('td',i>=2?'n':null,c)));tb.appendChild(tr)};
+    row([`${t('p.total')} (${keys.length})`,'',fmtKm(T.km),hm(T.work),...cols.map(a=>hm(T.tot[a]||0))],'total');
+    keys.forEach(k=>{const d=C.days[k];row([`${dayFromIso(k).toLocaleDateString(loc(),{weekday:'short'})} ${fmtD(dayFromIso(k))}`,[...d.trips].join(', '),d.km?fmtKm(d.km):(d.open?'…':''),workMs(d.acts)?hm(workMs(d.acts)):'',...cols.map(a=>d.acts[a]?hm(d.acts[a]):'')])});
+  }
+  const st=$('strips');st.innerHTML='';const used=new Set();const sk=keys.slice(0,45);
+  if(!sk.length)st.appendChild(el('p','note',t('p.noData')));
+  sk.forEach((k,idx)=>{const r=el('div','strip');const lab=el('div','sl');const dt=dayFromIso(k);lab.appendChild(el('b',null,dt.toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'numeric'})));lab.appendChild(document.createTextNode(C.days[k].km?fmtKm(C.days[k].km)+' km':''));
+    const box=el('div');drawTimeline(box,k,k===todayKey(),idx===sk.length-1).forEach(x=>used.add(x));r.append(lab,box);st.appendChild(r)});
+  drawLegend($('stripLegend'),used);
+}
+function renderLog(C){
+  head('logHead',[{t:t('p.start')},{t:t('p.end')},{t:t('p.duration')},{t:t('p.activity')},{t:t('p.details')},{t:t('p.location')},{t:t('p.note')}]);
+  const tb=$('logRows');tb.innerHTML='';const q=$('q').value.trim().toLowerCase();
+  const list=sortedAll().filter(e=>inRangeKey(isoDay(new Date(e.ts)))).filter(e=>!q||[tA(e.type),e.type,e.other,e.order,e.country,e.trailer,e.trip,e.truck,e.loc,e.note].filter(Boolean).join(' ').toLowerCase().includes(q)).reverse();
+  if(!list.length)emptyRow(tb,7,t('p.noData'));
+  let last='';
+  list.slice(0,1500).forEach(e=>{const d=new Date(e.ts),dk=isoDay(d);
+    if(dk!==last){last=dk;const r=el('tr','daysep');const td=el('td');td.colSpan=7;td.appendChild(el('div','dname',longDay(d)));td.appendChild(el('div','dsum',C.days[dk]?daySummaryText(C.days[dk]):''));r.appendChild(td);tb.appendChild(r)}
+    const inst=isInstant(e),end=C.endOf[e.id];const tr=el('tr');
+    tr.append(el('td','t',fmtH(d)),el('td','t',inst?'—':(end?fmtH(new Date(end)):t('p.nowWord'))),el('td','t',inst?'—':fmtDur((end||Date.now())-e.ts)));
+    const ta=el('td');ta.appendChild(chip(e,true));tr.appendChild(ta);
+    tr.appendChild(el('td',null,details(e,C)));
+    const tl=el('td',null,(e.loc||'—')+' ');const a=mapLink(e);if(a)tl.appendChild(a);tr.appendChild(tl);
+    tr.appendChild(el('td',null,[e.note,e.fromUnknown?'(Unknown →)':''].filter(Boolean).join(' ')));tb.appendChild(tr)});
+  $('logCount').textContent=t('p.count',{a:list.length});
+}
+$('q').oninput=()=>{if(view==='driver'&&dtab==='log'){const d=curDriver();if(d){useDriver(d);renderLog(compute());asOf=null}}};
+function tripCells(tr,D){return [fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):t('p.ongoing'),fmtDur(Math.max(0,D.b-D.a)),hm(workMs(D.acts)),hm(D.acts['Driving']||0),D.km!=null?fmtKm(D.km):'',[...new Set(D.orders.map(o=>o.e.order))].join(', ')]}
+function exportBtns(td,getR,suffix){['xlsx','pdf'].forEach(k=>{const b=el('button','btn small primary',k==='xlsx'?'Excel':'PDF');b.type='button';b.style.marginRight='4px';b.onclick=ev=>{ev.stopPropagation();doExport(getR(),k,suffix)};td.appendChild(b)})}
+function renderDriverTrips(){
+  head('dtHead',[{t:t('p.tripNo')},{t:t('p.start')},{t:t('p.end')},{t:t('p.duration'),n:1},{t:t('p.work'),n:1},{t:t('p.driving'),n:1},{t:t('p.km'),n:1},{t:t('p.orders')},{t:''}]);
+  const tb=$('dtRows');tb.innerHTML='';const list=tripsInPeriod();const d=curDriver();
+  if(!list.length)emptyRow(tb,9,t('p.noData'));
+  list.forEach(tr0=>{const D=tripData(tr0);const tr=el('tr');const c=tripCells(tr0,D);
+    tr.appendChild(el('td',null,String(tr0.no))).style.fontWeight='600';c.forEach((x,i)=>tr.appendChild(el('td',i<2?'t':(i<6?'n':null),x)));
+    const td=el('td');td.style.whiteSpace='nowrap';exportBtns(td,()=>{useDriver(d);return reportTrip(tr0)},fileSafe(d.name));tr.appendChild(td);tb.appendChild(tr)});
+}
+function renderFuelTab(){
+  const F=fuelPeriod();const s=$('fuelSum');s.innerHTML='';
+  const fact=(k,v)=>{const sp=el('span',null,k+' ');sp.appendChild(el('b',null,v));s.appendChild(sp)};
+  fact(t('p.fuelTotal'),`${fmtL(F.litres)} L`);if(F.avg!=null)fact(t('p.fuelAvg'),`${fmtL(F.avg)} l/100 km`);
+  head('fuelHead',[{t:t('p.date')},{t:t('p.litres'),n:1},{t:t('p.odo'),n:1},{t:t('p.dist'),n:1},{t:t('p.avg'),n:1},{t:t('p.location')}]);
+  const tb=$('fuelRows');tb.innerHTML='';if(!F.list.length)emptyRow(tb,6,t('p.noData'));
+  F.list.slice().reverse().forEach(x=>{const tr=el('tr');tr.append(el('td','t',fmtT(new Date(x.e.ts))),el('td','n',x.e.litres!=null?fmtL(x.e.litres):''),el('td','n',x.e.km!=null?fmtKm(x.e.km):''),el('td','n',x.dist!=null?fmtKm(x.dist):''),el('td','n',x.l100!=null?fmtL(x.l100):''),el('td',null,x.e.loc||''));tb.appendChild(tr)});
+}
+function doExport(R,kind,suffix){
+  asOf=null;
+  if(R.empty)return toast(t('p.nothing'));
+  if(kind==='xlsx'){if(!window.XLSX)return toast(t('p.libMissing'));download(`${R.file}_${suffix}.xlsx`,toXlsx(R))}
+  else{if(!window.jspdf)return toast(t('p.libMissing'));download(`${R.file}_${suffix}.pdf`,toPdf(R))}
+}
+const curReport=()=>$('repKind').value==='totals'?reportTotals():reportDays();
+$('xlsBtn').onclick=()=>{const d=curDriver();if(!d)return;useDriver(d);doExport(curReport(),'xlsx',fileSafe(d.name))};
+$('pdfBtn').onclick=()=>{const d=curDriver();if(!d)return;useDriver(d);doExport(curReport(),'pdf',fileSafe(d.name))};
+
+/* ----- trips and orders of all drivers ----- */
+function renderTrips(){
+  const q=$('tq').value.trim().toLowerCase();
+  head('trHead',[{t:t('p.driver')},{t:t('p.tripNo')},{t:t('p.start')},{t:t('p.end')},{t:t('p.duration'),n:1},{t:t('p.work'),n:1},{t:t('p.driving'),n:1},{t:t('p.km'),n:1},{t:t('p.orders')},{t:''}]);
+  head('orHead',[{t:t('p.date')},{t:t('p.time')},{t:t('p.driver')},{t:t('p.activity')},{t:t('p.order')},{t:t('p.trip')},{t:t('p.location')}]);
+  const rows=[],ords=[];
+  drivers.forEach(d=>{useDriver(d);
+    tripsInPeriod().forEach(tr0=>{const D=tripData(tr0);const c=tripCells(tr0,D);const hay=[dname(d),d.truck,tr0.no,c[6]].join(' ').toLowerCase();if(!q||hay.includes(q))rows.push({d,tr0,c})});
+    sorted().filter(e=>e.order&&inRangeKey(isoDay(new Date(e.ts)))).forEach(e=>{const hay=[dname(d),e.order,e.trip,e.loc,tA(e.type)].join(' ').toLowerCase();if(!q||hay.includes(q))ords.push({d,e})})});
+  rows.sort((a,b)=>b.tr0.start-a.tr0.start);ords.sort((a,b)=>b.e.ts-a.e.ts);
+  const tb=$('trRows');tb.innerHTML='';if(!rows.length)emptyRow(tb,10,t('p.noData'));
+  rows.slice(0,300).forEach(({d,tr0,c})=>{const tr=el('tr','click');tr.onclick=()=>openDriver(d.id);tr.appendChild(el('td',null,dname(d)));tr.appendChild(el('td',null,String(tr0.no))).style.fontWeight='600';
+    c.forEach((x,i)=>tr.appendChild(el('td',i<2?'t':(i<6?'n':null),x)));const td=el('td');td.style.whiteSpace='nowrap';exportBtns(td,()=>{useDriver(d);return reportTrip(tr0)},fileSafe(d.name));tr.appendChild(td);tb.appendChild(tr)});
+  const ob=$('orRows');ob.innerHTML='';if(!ords.length)emptyRow(ob,7,t('p.noData'));
+  ords.slice(0,500).forEach(({d,e})=>{const tr=el('tr','click');tr.onclick=()=>openDriver(d.id);const ta=el('td');ta.appendChild(chip(e));const tl=el('td',null,(e.loc||'—')+' ');const a=mapLink(e);if(a){a.onclick=ev=>ev.stopPropagation();tl.appendChild(a)}
+    tr.append(el('td','t',fmtD(new Date(e.ts))),el('td','t',fmtH(new Date(e.ts))),el('td',null,dname(d)),ta);tr.appendChild(el('td',null,e.order)).style.fontWeight='600';tr.append(el('td',null,e.trip||''),tl);ob.appendChild(tr)});
+}
+$('tq').oninput=()=>{if(view==='trips')renderTrips()};
+
+/* ----- summary of all drivers ----- */
+function summaryRows(){
+  return drivers.map(d=>{useDriver(d);const C=compute();const T=totalsOf(C);const F=fuelPeriod();const list=sortedAll().filter(inPeriod);
+    return {d,T,trips:tripsInPeriod().length,borders:list.filter(e=>e.type==='Border').length,litres:F.litres,avg:F.avg,fuelOk:F.list.filter(x=>x.l100!=null),has:list.length>0||T.keys.length>0}}).filter(r=>r.has);
+}
+function renderSummary(){
+  head('smHead',[{t:t('p.driver')},{t:t('p.truck')},{t:t('p.daysWorked'),n:1},{t:t('p.km'),n:1},{t:t('p.work'),n:1},{t:t('p.driving'),n:1},{t:t('p.breakSleep'),n:1},{t:t('p.tripsTab'),n:1},{t:t('p.borders'),n:1},{t:t('p.fuelL'),n:1},{t:t('p.avg'),n:1}]);
+  const tb=$('smRows');tb.innerHTML='';const R=summaryRows();
+  if(!R.length){emptyRow(tb,11,t('p.noData'));return}
+  const cells=r=>[dname(r.d),r.d.truck||'',r.T.days,fmtKm(r.T.km)||'0',hm(r.T.work),hm(r.T.drive),hm(r.T.rest),r.trips,r.borders,fmtL(r.litres),r.avg!=null?fmtL(r.avg):''];
+  R.forEach(r=>{const tr=el('tr','click');tr.onclick=()=>openDriver(r.d.id);cells(r).forEach((c,i)=>tr.appendChild(el('td',i>=2?'n':null,String(c))));tr.firstChild.style.fontWeight='600';tb.appendChild(tr)});
+  const S=sumTotals(R);const tr=el('tr','total');[t('p.total'),'',S.days,fmtKm(S.km)||'0',hm(S.work),hm(S.drive),hm(S.rest),S.trips,S.borders,fmtL(S.litres),S.avg!=null?fmtL(S.avg):''].forEach((c,i)=>tr.appendChild(el('td',i>=2?'n':null,String(c))));tb.appendChild(tr);
+}
+function sumTotals(R){const S={days:0,km:0,work:0,drive:0,rest:0,trips:0,borders:0,litres:0,avg:null};let fl=0,fd=0;
+  R.forEach(r=>{S.days+=r.T.days;S.km+=r.T.km;S.work+=r.T.work;S.drive+=r.T.drive;S.rest+=r.T.rest;S.trips+=r.trips;S.borders+=r.borders;S.litres+=r.litres;r.fuelOk.forEach(x=>{fl+=x.e.litres;fd+=x.dist})});
+  if(fd>0)S.avg=fl/fd*100;return S}
+/* files for all drivers (English, like every report) */
+function allData(){
+  const R=summaryRows();if(!R.length)return null;const S=sumTotals(R);const r1=x=>Math.round(x*10)/10;
+  const head0=['Driver','Truck','Days worked','Km driven','Work time (excl. break & sleep)','Driving','Break + sleep','Trips','Border crossings','Fuel (litres)','l/100 km'];
+  const rows=R.map(r=>[r.d.name||'',r.d.truck||'',r.T.days,r.T.km,hm(r.T.work),hm(r.T.drive),hm(r.T.rest),r.trips,r.borders,r1(r.litres),r.avg!=null?r1(r.avg):'']);
+  rows.push(['TOTAL','',S.days,S.km,hm(S.work),hm(S.drive),hm(S.rest),S.trips,S.borders,r1(S.litres),S.avg!=null?r1(S.avg):'']);
+  const info=[['Company',me?me.company:''],['Period',periodLabel()],['Drivers',R.length],['Generated',fmtT(new Date())]];
+  const per=R.map(r=>{useDriver(r.d);return {d:r.d,days:reportDays(),totals:reportTotals()}});asOf=null;
+  return {head0,rows,info,per};
+}
+function sheetName(wb,base){let n=noDia(base).replace(/[\[\]\*\?\/\\:]/g,' ').trim().slice(0,31)||'Sheet';let i=2;while(wb.SheetNames.includes(n)){const suf=' '+i++;n=n.slice(0,31-suf.length)+suf}return n}
+$('allXls').onclick=()=>{
+  if(!window.XLSX)return toast(t('p.libMissing'));const A=allData();if(!A)return toast(t('p.nothing'));
+  const wb=XLSX.utils.book_new();const title='Company report - all drivers';
+  const ws=XLSX.utils.aoa_to_sheet([[title],...A.info,[],A.head0,...A.rows]);ws['!cols']=A.head0.map((h,i)=>({wch:i===0?24:(i===4?28:14)}));XLSX.utils.book_append_sheet(wb,ws,'Summary');
+  A.per.forEach(p=>{const nm=p.d.name||'Driver';
+    [['days',p.days.tables[0]],['trips',p.totals.tables[2]],['log',p.days.tables[3]]].forEach(([tag,tb])=>{if(!tb||!tb.rows.length)return;
+      const s=XLSX.utils.aoa_to_sheet([[`${nm} - ${tb.name}`],...p.days.info,[],tb.head,...tb.rows]);s['!cols']=tb.head.map((h,i)=>({wch:Math.max((tb.widths&&tb.widths[i])||12,i===0?16:0)}));
+      XLSX.utils.book_append_sheet(wb,s,sheetName(wb,`${nm.slice(0,24)} ${tag}`))})});
+  download(`truck_log_all_drivers_${periodFile()}.xlsx`,new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+};
+$('allPdf').onclick=()=>{
+  if(!window.jspdf)return toast(t('p.libMissing'));const A=allData();if(!A)return toast(t('p.nothing'));
+  const doc=new jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});const Cn=r=>r.map(x=>noDia(x));
+  const table=(name,tb,y,bold)=>{doc.setFontSize(12);doc.text(noDia(name),14,y);
+    doc.autoTable({startY:y+2,head:[Cn(tb.head)],body:tb.rows.map(Cn),styles:{fontSize:tb.small?7.5:8.5,cellPadding:tb.small?1.4:1.7},headStyles:{fillColor:[22,50,79]},alternateRowStyles:{fillColor:[240,243,247]},
+      didParseCell:c=>{if(c.section==='body'&&bold&&c.row.index===tb.rows.length-1){c.cell.styles.fontStyle='bold';c.cell.styles.fillColor=[232,236,242]}}});return doc.lastAutoTable.finalY+10};
+  doc.setFontSize(16);doc.text(noDia(`${me?me.company:''} - Company report - all drivers`),14,15);doc.setFontSize(10);
+  doc.text(noDia(A.info.slice(1).map(([k,v])=>`${k}: ${v}`).join('      ')),14,21);
+  table('Summary',{head:A.head0,rows:A.rows},29,true);
+  A.per.forEach(p=>{doc.addPage();doc.setFontSize(15);doc.text(noDia(`${p.d.name||'Driver'}${p.d.truck?' - '+p.d.truck:''}`),14,15);doc.setFontSize(10);doc.text(noDia(`Period: ${periodLabel()}`),14,21);
+    let y=29;const t0=p.days.tables[0];if(t0.rows.length)y=table('Daily totals',t0,y,true);
+    const t2=p.totals.tables[2];if(t2.rows.length){if(y>170){doc.addPage();y=15}y=table('Trips',t2,y,false)}
+    const t3=p.days.tables[3];if(t3.rows.length){doc.addPage();table('Activity log',t3,15,false)}});
+  download(`truck_log_all_drivers_${periodFile()}.pdf`,doc.output('blob'));
+};
+
+/* ----- views ----- */
+let view='overview';
+const VIEWS={overview:'vOverview',driver:'vDriver',trips:'vTrips',summary:'vSummary'};
+function showView(v){view=VIEWS[v]?v:'overview';
+  Object.keys(VIEWS).forEach(k=>{$(VIEWS[k]).hidden=k!==view});
+  document.querySelectorAll('#nav [data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view||(view==='driver'&&b.dataset.view==='overview'))));
+  const slot=document.querySelector(`#${VIEWS[view]} .pslot`),pb=$('periodBar');pb.hidden=!slot;if(slot&&pb.parentNode!==slot)slot.appendChild(pb);
+  window.scrollTo(0,0);render()}
+function render(){if(!me)return;try{if(view==='overview')renderOverview();else if(view==='driver')renderDriver();else if(view==='trips')renderTrips();else renderSummary()}finally{asOf=null}}
+document.querySelectorAll('#nav [data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+function showShell(){
+  const inn=!!(sess&&me);$('vLogin').hidden=inn;$('nav').hidden=!inn;$('btnLogout').hidden=!inn;
+  $('coName').textContent=inn?me.company:t('p.title');$('who').textContent=inn?me.username:'';
+  if(!inn){Object.values(VIEWS).forEach(id=>{$(id).hidden=true});$('periodBar').hidden=true;$('vLogin').hidden=false}
+}
+async function boot(){
+  const r=await api('/rest/v1/rpc/tlm_me',{method:'POST',body:'{}'});
+  if(!r||!r.ok){const er=r&&r.error==='inactive'?t('p.inactive'):t('p.noAccess');sess=null;pls.del('tlp-sess');showShell();throw new Error(er)}
+  me=r;setRange('month');showShell();
+  await poll(true);await ensureFrom(addDays($('from').value,-35));
+  showView('overview');
+  clearInterval(pollH);pollH=setInterval(async()=>{if(document.hidden||!me)return;try{await poll(false);if(view!=='driver'||dtab!=='log'||!$('q').value)render()}catch(e){}},60000);
+}
+$('btnLogin').onclick=signIn;$('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
+$('btnLogout').onclick=signOut;
+$('btnReload').onclick=async()=>{$('btnReload').disabled=true;try{await poll(true);await ensureFrom($('from').value?addDays($('from').value,-35):'');render()}catch(e){toast(e.message)}$('btnReload').disabled=false};
+
+/* ----- language ----- */
+function setLang(l){lang=LOCALE[l]?l:'en';$('lang').value=lang;pls.set('tlp-lang',lang);applyLang();showShell();if(me)render()}
+LANGS.forEach(([code,name])=>{const o=document.createElement('option');o.value=code;o.textContent=name;$('lang').appendChild(o)});
+$('lang').onchange=()=>setLang($('lang').value);
+
+
+
+(async()=>{
+  const n=(navigator.language||'en').slice(0,2).toLowerCase();setLang(pls.get('tlp-lang','')||(LOCALE[n]?n:'en'));
+  if(DEMO){$('demoBar').hidden=false;sess={at:'demo'}}
+  showShell();
+  if(sess){try{await boot()}catch(e){if(!DEMO){$('lErr').textContent=e.message;$('lErr').hidden=false}}}
+})();
+</script>
+</body>
+</html>
