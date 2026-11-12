@@ -735,7 +735,9 @@ function chip(e,plain){const c=el('span','chip',e.type==='End day'&&!plain?t('p.
 function mapLink(e){if(e.lat==null)return null;const a=el('a',null,t('p.map'));a.href=`https://maps.google.com/?q=${e.lat},${e.lon}`;a.target='_blank';a.rel='noopener';return a}
 function head(id,cols){const h=$(id);h.innerHTML='';const tr=el('tr');cols.forEach(c=>{const th=el('th',c.n?'n':null,c.t);tr.appendChild(th)});h.appendChild(tr)}
 function emptyRow(tb,n,txt){const tr=el('tr');const td=el('td','empty',txt);td.colSpan=n;tr.appendChild(td);tb.appendChild(tr)}
-function download(name,blob){try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast(String(e&&e.message||e))}}
+async function download(name,blob){
+  if(window.claude&&window.claude.use){try{const dl=await window.claude.use('downloads');if(dl){try{await dl.save({filename:name,data:blob})}catch(e){}return}}catch(_){}}
+  try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast(String(e&&e.message||e))}}
 const fileSafe=x=>noDia(String(x||'driver')).replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,'')||'driver';
 
 /* ----- server ----- */
