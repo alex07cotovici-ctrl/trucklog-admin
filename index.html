@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Truck Log Admin</title>
+<style>
+/* Layout: admin console — header with session, company list as rows, side form as dialog */
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --ink:#14202e; --muted:#5b6878; --line:#d5dbe3;
+  --navy:#16324f; --navy-ink:#f4f7fb; --accent:#e8a317; --accent-ink:#1b1300;
+  --ok:#2e7d4f; --danger:#c0392b; --warnbg:#fff4d6; --chip:#e4e9f0;
+  --display:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c141e; --panel:#142130; --ink:#e6edf5; --muted:#93a3b6; --line:#25364a;
+  --navy:#0a1622; --navy-ink:#eef4fb; --accent:#f0b43a; --accent-ink:#1b1300;
+  --ok:#5fcf8c; --danger:#ff6b5b; --warnbg:#3a2e10; --chip:#1f3045; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c141e; --panel:#142130; --ink:#e6edf5; --muted:#93a3b6; --line:#25364a;
+  --navy:#0a1622; --navy-ink:#eef4fb; --accent:#f0b43a; --accent-ink:#1b1300;
+  --ok:#5fcf8c; --danger:#ff6b5b; --warnbg:#3a2e10; --chip:#1f3045; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+[hidden]{display:none!important}
+.wrap{max-width:1000px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.02em;text-wrap:balance}
+h1{font-size:28px;text-transform:uppercase}
+h2{font-size:20px;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.sub{color:var(--muted);font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;min-width:0}
+input,select{font:inherit;font-size:16px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;text-transform:none;letter-spacing:normal;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:9px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.navy{background:var(--navy);color:var(--navy-ink);border-color:var(--navy)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.6;cursor:default}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{color:var(--danger);font-weight:600;margin:0}
+.note{margin:0;color:var(--muted);font-size:14px}
+.demo{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 12px;font-weight:600;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.kpi span{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font-family:var(--mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.co{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.co.off{opacity:.7}
+.cohead{display:grid;grid-template-columns:1fr auto;gap:8px 14px;padding:14px 16px;align-items:center}
+.coname{font-family:var(--display);font-size:20px;font-weight:600;letter-spacing:.02em;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.chip{font-family:var(--body);font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--ink);letter-spacing:0}
+.chip.trial{background:var(--accent);color:var(--accent-ink)}
+.chip.off{background:var(--danger);color:#fff}
+.chip.exp{background:var(--warnbg);color:var(--ink)}
+.code{font-family:var(--mono);font-size:16px;background:var(--bg);border:1px dashed var(--line);border-radius:6px;padding:4px 8px;user-select:all}
+.meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--muted);align-items:center}
+.meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+.seatbar{width:120px;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}
+.seatbar i{display:block;height:100%;background:var(--ok)}
+.seatbar.full i{background:var(--danger)}
+.coacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.devs{border-top:1px solid var(--line);padding:10px 16px;background:var(--bg)}
+.dev{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.dev:last-child{border-bottom:0}
+.dev .dm{min-width:0;overflow-wrap:anywhere}
+.dev small{display:block;color:var(--muted);font-variant-numeric:tabular-nums}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:18px;width:min(480px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog form{display:flex;flex-direction:column;gap:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-weight:600;border:0;background:var(--panel);color:var(--ink);padding:9px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--navy-ink)}
+.coderow{display:flex;gap:8px}
+.coderow input{font-family:var(--mono);text-transform:uppercase}
+.empty{color:var(--muted);text-align:center;padding:24px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1}
+@media (max-width:560px){.kpis{grid-template-columns:1fr 1fr 1fr}.kpi b{font-size:20px}.cohead{grid-template-columns:1fr}.coacts{justify-content:flex-start}.row2{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Truck Log · Coduri</h1><div class="sub" id="who"></div></div>
+    <div style="display:flex;gap:8px"><button class="btn" id="btnReload" type="button" hidden>Reîncarcă</button><button class="btn" id="btnLogout" type="button" hidden>Ieșire</button></div>
+  </header>
+  <div class="demo" id="demoBar" hidden>Previzualizare cu date de exemplu. Modificările nu se salvează nicăieri.</div>
+
+  <!-- 1. connection settings -->
+  <section class="panel" id="vSetup" hidden>
+    <h2>Conectare la server</h2>
+    <p class="note">Din Supabase: Project Settings → API. Copiază <b>Project URL</b> și cheia <b>anon public</b>. Nu folosi niciodată cheia service_role aici.</p>
+    <div class="field"><label for="sUrl">Project URL</label><input id="sUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+    <div class="field"><label for="sKey">Cheia anon public</label><input id="sKey" type="text" autocomplete="off"></div>
+    <div><button class="btn primary" id="btnSaveCfg" type="button">Salvează</button></div>
+  </section>
+
+  <!-- 2. login -->
+  <section class="panel" id="vLogin" hidden>
+    <h2>Intră în cont</h2>
+    <div class="field"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username"></div>
+    <div class="field"><label for="lPass">Parola</label><input id="lPass" type="password" autocomplete="current-password"></div>
+    <p class="err" id="lErr" hidden></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btnLogin" type="button">Intră</button><button class="btn" id="btnEditCfg" type="button">Schimbă serverul</button></div>
+  </section>
+
+  <!-- 3. main -->
+  <div id="vMain" hidden style="display:flex;flex-direction:column;gap:16px">
+    <section class="kpis">
+      <div class="kpi"><span>Firme active</span><b id="kCos">0</b></div>
+      <div class="kpi"><span>Telefoane active</span><b id="kDevs">0</b></div>
+      <div class="kpi"><span>Probe în curs</span><b id="kTrials">0</b></div>
+    </section>
+    <div class="top"><h2>Coduri</h2><button class="btn primary" id="btnNew" type="button">Firmă nouă</button></div>
+    <div id="list" style="display:flex;flex-direction:column;gap:12px"></div>
+    <p class="note">Un loc se ocupă când un telefon activează codul. Dacă un șofer pleacă sau își schimbă telefonul, apasă „Eliberează” la telefonul lui ca locul să poată fi folosit din nou.</p>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form id="frm">
+    <h2 id="dTitle">Firmă nouă</h2>
+    <div class="seg" role="group"><button type="button" data-kind="company" aria-pressed="true">Firmă</button><button type="button" data-kind="trial" aria-pressed="false">Cod de probă</button></div>
+    <div class="field"><label for="fName">Numele firmei (apare în aplicație și în rapoarte)</label><input id="fName" type="text" autocomplete="off"></div>
+    <div class="field"><label for="fCode">Codul</label><div class="coderow"><input id="fCode" type="text" autocomplete="off" spellcheck="false"><button class="btn" id="btnGen" type="button">Generează</button></div></div>
+    <div class="row2">
+      <div class="field" id="fSeatsF"><label for="fSeats">Locuri (telefoane)</label><input id="fSeats" type="number" min="1" step="1" inputmode="numeric"></div>
+      <div class="field" id="fDaysF" hidden><label for="fDays">Zile de probă</label><input id="fDays" type="number" min="1" step="1" inputmode="numeric"></div>
+      <div class="field"><label for="fUntil">Valabil până la (gol = fără termen)</label><input id="fUntil" type="date"></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="fActive" style="width:auto"> Codul este activ</label>
+    <p class="err" id="fErr" hidden></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn danger" id="btnDel" type="button" hidden>Șterge firma</button><span style="flex:1"></span><button class="btn" id="btnCancel" type="button">Anulează</button><button class="btn primary" type="submit">Salvează</button></div>
+    <p class="err" id="delNote" hidden style="font-weight:400">Se șterg și telefoanele ei, care se vor bloca la următoarea verificare. Apasă din nou „Șterge firma” ca să confirmi.</p>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const DEMO=!!window.ADMIN_DEMO;
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+function toast(x){const t=$('toast');t.textContent=x;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2400)}
+const pad=n=>String(n).padStart(2,'0');
+const fmtD=s=>{if(!s)return '';const d=new Date(s);return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`};
+const fmtT=s=>{if(!s)return '';const d=new Date(s);return `${fmtD(s)} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+
+/* ---------- connection ---------- */
+const DEF_CFG={url:'https://ujsjnhlhmdrsfrivvbzt.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqc2puaGxobWRyc2ZyaXZ2Ynp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NzM3ODgsImV4cCI6MjExMDA0OTc4OH0.jpPcxxfHd-c41nnSkC77PvF9aM6dIenmHz3ccgCJTI0'};
+let cfg=ls.get('tla-cfg',null)||DEF_CFG, sess=ls.get('tla-sess',null), data=[];
+async function api(path,opt={}){
+  if(DEMO)return demoApi(path,opt);
+  if(sess&&sess.exp&&Date.now()>sess.exp-60e3)await refresh();
+  const r=await fetch(cfg.url+path,{...opt,headers:{apikey:cfg.key,Authorization:'Bearer '+(sess?sess.at:cfg.key),'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
+  if(r.status===401){sess=null;ls.del('tla-sess');show();throw new Error('Sesiunea a expirat. Intră din nou.')}
+  if(!r.ok){let m='';try{const j=await r.json();m=j.message||j.msg||j.error_description||''}catch(e){}throw new Error(m||('Eroare '+r.status))}
+  return r.status===204?null:r.json();
+}
+async function login(){
+  $('lErr').hidden=true;$('btnLogin').disabled=true;
+  try{
+    if(DEMO){sess={at:'demo',email:$('lEmail').value||'admin@exemplu.md'};}
+    else{
+      const r=await fetch(cfg.url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:cfg.key,'Content-Type':'application/json'},body:JSON.stringify({email:$('lEmail').value.trim(),password:$('lPass').value})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error_description||j.msg||'Email sau parolă greșită.');
+      sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email:j.user&&j.user.email};
+    }
+    ls.set('tla-sess',sess);$('lPass').value='';show();
+  }catch(e){$('lErr').textContent=e.message==='Failed to fetch'?'Serverul nu răspunde. Verifică adresa și internetul.':e.message;$('lErr').hidden=false}
+  $('btnLogin').disabled=false;
+}
+async function refresh(){
+  const r=await fetch(cfg.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:cfg.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sess.rt})});
+  if(!r.ok){sess=null;ls.del('tla-sess');show();throw new Error('Sesiunea a expirat. Intră din nou.')}
+  const j=await r.json();sess={...sess,at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000};ls.set('tla-sess',sess);
+}
+function show(){
+  const hasCfg=DEMO||(cfg&&cfg.url&&cfg.key);
+  $('vSetup').hidden=!!hasCfg;$('vLogin').hidden=!hasCfg||!!sess;$('vMain').hidden=!sess;
+  $('btnLogout').hidden=!sess;$('btnReload').hidden=!sess;$('who').textContent=sess?('Conectat ca '+(sess.email||'admin')):'';
+  if(!hasCfg&&cfg){$('sUrl').value=cfg.url||'';$('sKey').value=cfg.key||''}
+  if(sess)load();
+}
+$('btnSaveCfg').onclick=()=>{const u=$('sUrl').value.trim().replace(/\/+$/,''),k=$('sKey').value.trim();if(!/^https:\/\//.test(u)||!k)return toast('Completează adresa (https://…) și cheia');cfg={url:u,key:k};ls.set('tla-cfg',cfg);show()};
+$('btnEditCfg').onclick=()=>{$('vSetup').hidden=false;$('vLogin').hidden=true;if(cfg){$('sUrl').value=cfg.url;$('sKey').value=cfg.key}};
+$('btnLogin').onclick=login;$('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('btnLogout').onclick=()=>{sess=null;ls.del('tla-sess');show()};
+$('btnReload').onclick=()=>load();
+
+/* ---------- list ---------- */
+async function load(){
+  try{data=await api('/rest/v1/companies?select=*,devices(*)&order=created_at.asc')||[];render()}
+  catch(e){$('list').innerHTML='';const p=document.createElement('p');p.className='err';p.textContent=e.message;$('list').appendChild(p)}
+}
+const activeDevs=c=>(c.devices||[]).filter(d=>!d.released&&!(d.expires_at&&Date.parse(d.expires_at)<Date.now()));
+function render(){
+  const list=$('list');list.innerHTML='';
+  $('kCos').textContent=data.filter(c=>c.kind==='company'&&c.active&&!(c.valid_until&&c.valid_until<today())).length;
+  $('kDevs').textContent=data.filter(c=>c.kind==='company').reduce((s,c)=>s+activeDevs(c).length,0);
+  $('kTrials').textContent=data.filter(c=>c.kind==='trial').reduce((s,c)=>s+activeDevs(c).length,0);
+  if(!data.length){const p=document.createElement('p');p.className='empty';p.textContent='Încă nu ai coduri. Apasă „Firmă nouă”.';list.appendChild(p);return}
+  const sorted=data.slice().sort((a,b)=>(a.kind===b.kind?0:a.kind==='trial'?-1:1)||a.name.localeCompare(b.name));
+  sorted.forEach(c=>{
+    const expired=c.valid_until&&c.valid_until<today();
+    const box=document.createElement('div');box.className='co'+(!c.active||expired?' off':'');
+    const head=document.createElement('div');head.className='cohead';
+    const nm=document.createElement('div');nm.className='coname';nm.append(c.kind==='trial'?'Cod de probă':c.name);
+    const chip=(txt,cls)=>{const s=document.createElement('span');s.className='chip '+(cls||'');s.textContent=txt;nm.appendChild(s)};
+    if(c.kind==='trial')chip(c.trial_days+' zile','trial');
+    if(!c.active)chip('Oprit','off');else if(expired)chip('Expirat','exp');
+    const acts=document.createElement('div');acts.className='coacts';
+    const mk=(txt,fn,cls)=>{const b=document.createElement('button');b.type='button';b.className='btn small '+(cls||'');b.textContent=txt;b.onclick=fn;acts.appendChild(b)};
+    mk('Copiază codul',()=>copy(c.code));
+    mk('Modifică',()=>openForm(c),'navy');
+    const meta=document.createElement('div');meta.className='meta';
+    const code=document.createElement('span');code.className='code';code.textContent=c.code;meta.appendChild(code);
+    const used=activeDevs(c).length;
+    if(c.kind==='trial'){meta.append(span(`Telefoane în probă: `,used),span('Total activări: ',(c.devices||[]).length))}
+    else{
+      const sp=document.createElement('span');sp.append('Locuri: ');const b=document.createElement('b');b.textContent=`${(c.devices||[]).filter(d=>!d.released).length} / ${c.seats??'∞'}`;sp.appendChild(b);
+      if(c.seats){const bar=document.createElement('span');const full=(c.devices||[]).filter(d=>!d.released).length>=c.seats;bar.className='seatbar'+(full?' full':'');const i=document.createElement('i');i.style.width=Math.min(100,(c.devices||[]).filter(d=>!d.released).length/c.seats*100)+'%';bar.appendChild(i);sp.append(' ',bar)}
+      meta.appendChild(sp);
+    }
+    meta.appendChild(span('Valabil până la: ',c.valid_until?fmtD(c.valid_until):'fără termen'));
+    head.append(nm,acts,meta);box.appendChild(head);
+    const devs=(c.devices||[]).filter(d=>!d.released).sort((a,b)=>Date.parse(b.activated_at)-Date.parse(a.activated_at));
+    if(devs.length){
+      const dv=document.createElement('div');dv.className='devs';
+      devs.slice(0,c.kind==='trial'?20:500).forEach(d=>{
+        const r=document.createElement('div');r.className='dev';const m=document.createElement('div');m.className='dm';
+        m.append(d.model||'Telefon');const sm=document.createElement('small');
+        sm.textContent=`Cod telefon ${devCode(d.device_id)} · activat ${fmtT(d.activated_at)} · văzut ${fmtT(d.last_seen)}`+(d.expires_at?(Date.parse(d.expires_at)<Date.now()?` · proba s-a terminat ${fmtT(d.expires_at)}`:` · proba până ${fmtT(d.expires_at)}`):'');m.appendChild(sm);
+        const b=document.createElement('button');b.type='button';b.className='btn small';b.textContent='Eliberează';b.onclick=()=>release(c,d,b);
+        r.append(m,b);dv.appendChild(r)});
+      box.appendChild(dv);
+    }
+    list.appendChild(box);
+  });
+}
+function span(label,val){const s=document.createElement('span');s.append(label);const b=document.createElement('b');b.textContent=val;s.appendChild(b);return s}
+const devCode=id=>{const x=String(id).replace(/[^a-z0-9]/gi,'').toUpperCase().slice(-8).padStart(8,'0');return x.slice(0,4)+'-'+x.slice(4)};
+async function copy(x){try{await navigator.clipboard.writeText(x);toast('Cod copiat: '+x)}catch(e){prompt?toast(x):0}}
+async function release(c,d,b){
+  if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Sigur? Apasă iar';b.classList.add('danger');setTimeout(()=>{if(b.isConnected){b.dataset.arm='';b.textContent='Eliberează';b.classList.remove('danger')}},4000);return}
+  try{await api('/rest/v1/devices?id=eq.'+d.id,{method:'PATCH',body:JSON.stringify({released:true})});toast('Loc eliberat. Telefonul se va bloca la următoarea verificare.');load()}catch(e){toast(e.message)}
+}
+
+/* ---------- form ---------- */
+let editing=null,kind='company';
+const ALPH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function rnd(n){const a=new Uint32Array(n);crypto.getRandomValues(a);return [...a].map(x=>ALPH[x%ALPH.length]).join('')}
+function genCode(){
+  if(kind==='trial')return 'PROBA-'+rnd(6);
+  const words=$('fName').value.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(w=>w&&!['SRL','SA','SC','LLC','BV','GMBH','LTD','SPA','SAS','B.V.'].includes(w));
+  const pre=(words.length>1?words.map(w=>w[0]).join(''):(words[0]||'TL')).slice(0,4)||'TL';
+  return `${pre}-${rnd(4)}-${rnd(4)}`;
+}
+function setKind(k){kind=k;document.querySelectorAll('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.kind===k)));
+  $('fSeatsF').hidden=k==='trial';$('fDaysF').hidden=k!=='trial';$('fName').closest('.field').hidden=k==='trial'}
+document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{if(editing)return;setKind(b.dataset.kind);$('fCode').value=genCode()});
+function openForm(c){
+  editing=c||null;setKind(c?c.kind:'company');
+  $('dTitle').textContent=c?(c.kind==='trial'?'Cod de probă':c.name):'Firmă nouă';
+  $('fName').value=c?c.name:'';$('fCode').value=c?c.code:'';$('fSeats').value=c?(c.seats??''):'5';$('fDays').value=c?c.trial_days:'7';
+  $('fUntil').value=c&&c.valid_until?c.valid_until:'';$('fActive').checked=c?c.active:true;
+  $('fErr').hidden=true;$('delNote').hidden=true;$('btnDel').hidden=!c;
+  document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=!!c);
+  if(!c)$('fCode').value=genCode();
+  $('dlg').showModal();
+}
+$('btnNew').onclick=()=>openForm(null);
+$('btnGen').onclick=()=>{$('fCode').value=genCode()};
+$('fName').addEventListener('input',()=>{if(!editing)$('fCode').value=genCode()});
+$('btnCancel').onclick=()=>$('dlg').close();
+$('frm').addEventListener('submit',async ev=>{
+  ev.preventDefault();const err=x=>{$('fErr').textContent=x;$('fErr').hidden=false};
+  const name=kind==='trial'?'Trial':$('fName').value.trim();if(!name)return err('Scrie numele firmei.');
+  const code=$('fCode').value.trim().toUpperCase();if(!/^[A-Z0-9-]{6,32}$/.test(code))return err('Codul trebuie să aibă 6–32 de litere, cifre sau cratime.');
+  const seats=kind==='trial'?null:($('fSeats').value?parseInt($('fSeats').value,10):null);if(seats!=null&&!(seats>=1))return err('Locurile trebuie să fie cel puțin 1.');
+  const days=parseInt($('fDays').value,10)||7;
+  if(editing&&seats!=null){const used=(editing.devices||[]).filter(d=>!d.released).length;if(seats<used)return err(`Sunt deja ${used} telefoane active. Eliberează întâi câteva sau pune cel puțin ${used} locuri.`)}
+  const row={name,code,kind,seats,trial_days:days,valid_until:$('fUntil').value||null,active:$('fActive').checked};
+  try{
+    if(editing)await api('/rest/v1/companies?id=eq.'+editing.id,{method:'PATCH',body:JSON.stringify(row)});
+    else await api('/rest/v1/companies',{method:'POST',body:JSON.stringify(row)});
+    $('dlg').close();toast(editing?'Modificare salvată':'Cod creat: '+code);load();
+  }catch(e){err(/duplicate|unique/i.test(e.message)?'Codul există deja. Apasă „Generează”.':e.message)}
+});
+$('btnDel').onclick=async()=>{
+  if($('delNote').hidden){$('delNote').hidden=false;return}
+  try{await api('/rest/v1/companies?id=eq.'+editing.id,{method:'DELETE'});$('dlg').close();toast('Firma a fost ștearsă');load()}catch(e){$('fErr').textContent=e.message;$('fErr').hidden=false}
+};
+
+/* ---------- demo data (preview only) ---------- */
+let demoDb=null;
+function demoApi(path,opt){
+  if(!demoDb){const now=Date.now(),d=(h)=>new Date(now-h*3600e3).toISOString();
+    demoDb=[
+      {id:'t',name:'Trial',code:'PROBA-TRUCKLOG',kind:'trial',seats:null,trial_days:7,valid_until:null,active:true,created_at:d(900),devices:[
+        {id:'t1',device_id:'a8f3c21b9e44d07k',model:'Samsung Galaxy A54',activated_at:d(50),last_seen:d(2),expires_at:new Date(now+118*3600e3).toISOString(),released:false},
+        {id:'t2',device_id:'77c0d1e2f3a4b5q9',model:'Xiaomi Redmi Note 12',activated_at:d(200),last_seen:d(40),expires_at:new Date(now-32*3600e3).toISOString(),released:false}]},
+      {id:'m',name:'Mark Huisman Solutions',code:'MHS-7K3Q-M9XA',kind:'company',seats:5,valid_until:null,active:true,created_at:d(800),devices:[
+        {id:'m1',device_id:'f0e1d2c3b4a59x7z',model:'Motorola moto g54',activated_at:d(300),last_seen:d(1),expires_at:null,released:false}]},
+      {id:'p',name:'Transport Popescu SRL',code:'TP-R4WN-8HJD',kind:'company',seats:10,valid_until:'2027-12-31',active:true,created_at:d(100),devices:Array.from({length:7},(_,i)=>({id:'p'+i,device_id:'p00'+i+'x9k2m4q'+i,model:['Samsung Galaxy A34','Samsung Galaxy A15','Xiaomi Redmi 13C','Motorola moto g34','Samsung Galaxy A25','Nokia G42','Xiaomi Redmi Note 13'][i],activated_at:d(90-i*8),last_seen:d(i*3+1),expires_at:null,released:false}))},
+      {id:'b',name:'Bălți Cargo',code:'BC-2MXL-QW7P',kind:'company',seats:3,valid_until:'2026-10-31',active:true,created_at:d(600),devices:[]}];}
+  const m=(opt.method||'GET');const id=(path.match(/id=eq\.([^&]+)/)||[])[1];
+  if(path.startsWith('/rest/v1/companies')){
+    if(m==='GET')return Promise.resolve(JSON.parse(JSON.stringify(demoDb)));
+    const body=opt.body?JSON.parse(opt.body):{};
+    if(m==='POST'){if(demoDb.some(c=>c.code===body.code))return Promise.reject(new Error('duplicate key'));demoDb.push({...body,id:'n'+Date.now(),created_at:new Date().toISOString(),devices:[]});return Promise.resolve([])}
+    if(m==='PATCH'){const c=demoDb.find(x=>x.id===id);Object.assign(c,body);return Promise.resolve([])}
+    if(m==='DELETE'){demoDb=demoDb.filter(x=>x.id!==id);return Promise.resolve(null)}
+  }
+  if(path.startsWith('/rest/v1/devices')&&m==='PATCH'){demoDb.forEach(c=>(c.devices||[]).forEach(d=>{if(d.id===id)d.released=true}));return Promise.resolve([])}
+  return Promise.resolve(null);
+}
+if(DEMO){$('demoBar').hidden=false;sess={at:'demo',email:'admin@exemplu.md'}}
+show();
+</script>
+</body>
+</html>
