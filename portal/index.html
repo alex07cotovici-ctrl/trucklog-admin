@@ -623,7 +623,7 @@ function reportTotals(){
   const list=sortedAll().filter(inPeriod);const tp=tripsInPeriod();const F=fuelPeriod();
   const general=[['Days worked',days],['Km driven',km],['Work time (excl. break & sleep)',fmtHM(workMs(tot))],['Driving',fmtHM(tot['Driving']||0)],['Break + sleep',fmtHM((tot['Break']||0)+(tot['Sleep']||0))],['Trips',tp.length],['Border crossings',list.filter(e=>e.type==='Border').length],['Fuel (litres)',Math.round(F.litres*10)/10],['Average consumption (l/100 km)',F.avg!=null?Math.round(F.avg*10)/10:'']];
   const actRows=acts.map(a=>[a,fmtHM(tot[a]),Math.round(tot[a]/sum*100)+'%']);if(acts.length)actRows.push(['TOTAL',fmtHM(acts.reduce((s,a)=>s+tot[a],0)),'100%']);
-  const tripRows=tp.slice().reverse().map(tr=>{const D=tripData(tr);return [tr.no,tr.trailer||'',fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):'ongoing',fmtDur(D.b-D.a),fmtHM(workMs(D.acts)),fmtHM(D.acts['Driving']||0),D.km??'',[...new Set(D.orders.map(o=>o.e.order))].join(', ')]});
+  const tripRows=tp.slice().reverse().map(tr=>{const D=tripData(tr);return [tr.no,tr.trailer||'',fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):'ongoing',fmtDur(D.b-D.a),fmtHM(workMs(D.acts)),fmtHM(D.acts['Driving']||0),D.km??'',orderList(D.orders).join(', ')]});
   return {title:'Driver activity report - totals for the period',file:`truck_log_totals_${periodFile()}`,empty:!list.length,info:baseInfo(list,[['Period',periodLabel()]]),
     tables:[{name:'General totals',head:['Total','Value'],rows:general,widths:[34,16]},
             {name:'Time per activity',head:['Activity','Time (h:mm)','Share'],rows:actRows,boldLast:true,widths:[22,14,10]},
@@ -698,6 +698,8 @@ function fuelData(){
 function fuelPeriod(){const list=fuelData().filter(x=>inRangeKey(isoDay(new Date(x.e.ts))));
   const litres=list.reduce((s,x)=>s+(x.e.litres||0),0);const ok=list.filter(x=>x.l100!=null);
   const avg=ok.length?ok.reduce((s,x)=>s+x.segL,0)/ok.reduce((s,x)=>s+x.dist,0)*100:null;return {list,litres,avg}}
+/* every order number of a trip once, also when several were typed in one field ("2607846, 2607855") */
+function orderList(orders){const seen=new Set();orders.forEach(o=>String(o.e.order||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean).forEach(x=>seen.add(x)));return [...seen]}
 function allTrips(){
   const list=trips.map(x=>({...x}));const have=new Set(trips.map(x=>x.no));const s=sorted();const g={};
   s.forEach((e,i)=>{if(e.trip&&!have.has(e.trip)){const o=g[e.trip]||(g[e.trip]={id:'d-'+e.trip,no:e.trip,start:e.ts,end:null,derived:true});o.end=s[i+1]?s[i+1].ts:null}});
@@ -941,7 +943,7 @@ function renderLog(C){
   $('logCount').textContent=t('p.count',{a:list.length});
 }
 $('q').oninput=()=>{if(view==='driver'&&dtab==='log'){const d=curDriver();if(d){useDriver(d);renderLog(compute());asOf=null}}};
-function tripCells(tr,D){return [tr.trailer||'',fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):t('p.ongoing'),fmtDur(Math.max(0,D.b-D.a)),hm(workMs(D.acts)),hm(D.acts['Driving']||0),D.km!=null?fmtKm(D.km):'',[...new Set(D.orders.map(o=>o.e.order))].join(', ')]}
+function tripCells(tr,D){return [tr.trailer||'',fmtT(new Date(tr.start)),tr.end?fmtT(new Date(tr.end)):t('p.ongoing'),fmtDur(Math.max(0,D.b-D.a)),hm(workMs(D.acts)),hm(D.acts['Driving']||0),D.km!=null?fmtKm(D.km):'',orderList(D.orders).join(', ')]}
 function exportBtns(td,getR,suffix){['xlsx','pdf'].forEach(k=>{const b=el('button','btn small primary',k==='xlsx'?'Excel':'PDF');b.type='button';b.style.marginRight='4px';b.onclick=ev=>{ev.stopPropagation();doExport(getR(),k,suffix)};td.appendChild(b)})}
 function renderDriverTrips(){
   head('dtHead',[{t:t('p.tripNo')},{t:t('p.trailer')},{t:t('p.start')},{t:t('p.end')},{t:t('p.duration'),n:1},{t:t('p.work'),n:1},{t:t('p.driving'),n:1},{t:t('p.km'),n:1},{t:t('p.orders')},{t:''}]);
